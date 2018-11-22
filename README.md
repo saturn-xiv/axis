@@ -2,11 +2,19 @@
 
 A open source Office-Automation solution.
 
-## Usage
+## Install conan
 
--   install conan
+-   for mac
 
 ```bash
+$ brew install python cmake
+$ pip3 install conan
+```
+
+-   for ubuntu
+
+```bash
+$ sudo apt-get install python virtualenv build-essential cmake
 $ virtualenv python
 $ source python/bin/activate
 $ pip install conan
@@ -14,11 +22,14 @@ $ conan profile new default --detect
 $ conan profile update settings.compiler.libcxx=libstdc++11 default
 ```
 
--   build
+## Build
 
 ```bash
+$ source python/bin/activate
 $ mkdir build && cd build
 $ conan install .. --build missing
+$ cmake ..
+$ make -j
 ```
 
 ## Notes
