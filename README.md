@@ -14,10 +14,30 @@ $ pip3 install conan
 -   for ubuntu
 
 ```bash
-$ sudo apt-get install python virtualenv build-essential cmake
-$ virtualenv python
+$ sudo apt-get install python3 virtualenv build-essential cmake
+$ virtualenv -p python3 python
 $ source python/bin/activate
 $ pip install conan
+```
+
+-   for armv7hf
+
+```bash
+$ docker run -it -v $(pwd):/workspace --rm conanio/gcc8-armv7hf /bin/bash
+$ sudo pip install conan --upgrade
+```
+
+## Setup conan
+
+-   generate default profile
+
+```bash
+$ conan profile new default --detect
+```
+
+-   form amd64/linux
+
+```bash
 $ conan profile new default --detect
 $ conan profile update settings.compiler.libcxx=libstdc++11 default
 ```
@@ -25,7 +45,6 @@ $ conan profile update settings.compiler.libcxx=libstdc++11 default
 ## Build
 
 ```bash
-$ source python/bin/activate
 $ mkdir build && cd build
 $ conan install .. --build missing
 $ cmake ..
@@ -38,6 +57,12 @@ $ make -j
 
 ```bash
 openssl rand -base64 32
+```
+
+-   conan usage
+
+```bash
+conan search Poco* --remote=conan-center
 ```
 
 ## Resources
