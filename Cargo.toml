@@ -2,9 +2,10 @@
 name = "axis"
 version = "0.1.0"
 authors = ["Jeremy Zheng <jitang.zheng@gmail.com>"]
-description = "A web application by Rust and React.."
-homepage = "https://github.com/saturn-xiv/arete"
+description = "A radically simple IT automation platform."
+homepage = "https://github.com/saturn-xiv/axis"
 license = "MIT"
+readme = "README.md"
 
 [profile.release]
 lto = true
