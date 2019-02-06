@@ -1,0 +1,13 @@
+[Unit]
+Description=AXIS agent.
+After=network.target
+
+[Service]
+Type=simple
+WorkingDirectory=/var/lib/axis
+ExecStart=/usr/bin/axis agent
+Restart=on-failure
+LimitNOFILE=10240
+
+[Install]
+WantedBy=multi-user.target
