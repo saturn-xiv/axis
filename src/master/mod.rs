@@ -25,10 +25,10 @@ pub struct Host {
     pub id: String,
 }
 
-pub fn launch(_cfg: PathBuf, _db: Connection) -> Result<()> {
+pub fn launch(_etc: PathBuf, _db: Connection) -> Result<()> {
     Ok(())
 }
 
-pub fn finger(_cfg: PathBuf, _db: Connection) -> Result<()> {
+pub fn finger(_etc: PathBuf, _db: Connection) -> Result<()> {
     Ok(())
 }

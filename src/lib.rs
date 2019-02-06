@@ -14,13 +14,15 @@ extern crate clap;
 extern crate log4rs;
 extern crate mustache;
 extern crate nix;
+extern crate rmp_serde;
 extern crate serde;
 extern crate toml;
 extern crate zmq;
+extern crate base64;
 
 pub mod agent;
 pub mod errors;
-pub mod generate;
+pub mod key;
 pub mod master;
 pub mod orm;
 pub mod task;
@@ -35,11 +37,11 @@ pub fn launch() -> errors::Result<()> {
     let name = env!("CARGO_PKG_NAME");
     let master = "master";
     let agent = "agent";
-    let mut cfg = Path::new("/etc").join(name);
-    if !cfg.exists() {
-        cfg = Path::new(".etc").to_path_buf();
+    let mut etc = Path::new("/etc").join(name);
+    if !etc.exists() {
+        etc = Path::new(".etc").to_path_buf();
     }
-    log4rs::init_file(cfg.join("log4rs.yml"), Default::default())?;
+    log4rs::init_file(etc.join("log4rs.yml"), Default::default())?;
 
     let matches = App::new(name)
         .version(env!("CARGO_PKG_VERSION"))
@@ -91,29 +93,29 @@ pub fn launch() -> errors::Result<()> {
 
     if let Some(matches) = matches.subcommand_matches(agent) {
         if matches.is_present("finger") {
-            return agent::finger(cfg);
+            return agent::finger(etc);
         }
-        return agent::launch(cfg);
+        return agent::launch(etc);
     }
 
     let db = orm::Connection::establish("tmp/db")?;
 
     if let Some(matches) = matches.subcommand_matches(master) {
         if matches.is_present("list") {
-            return master::agents::list(cfg, db);
+            return master::agents::list(etc, db);
         }
         if matches.is_present("accept") {
             let name = matches.value_of("accept").unwrap();
-            return master::agents::accept(cfg, db, name);
+            return master::agents::accept(etc, db, name);
         }
         if matches.is_present("reject") {
             let name = matches.value_of("reject").unwrap();
-            return master::agents::reject(cfg, db, name);
+            return master::agents::reject(etc, db, name);
         }
         if matches.is_present("finger") {
-            return master::finger(cfg, db);
+            return master::finger(etc, db);
         }
-        return master::launch(cfg, db);
+        return master::launch(etc, db);
     }
     Ok(())
 }
