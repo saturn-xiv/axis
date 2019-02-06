@@ -1,3 +1,7 @@
+extern crate axis;
+
 fn main() {
-    println!("Hello, world!");
+    if let Err(err) = axis::launch() {
+        panic!(err)
+    }
 }

@@ -1,4 +1,3 @@
-use std::collections::HashMap;
 use std::fs::File;
 use std::io::prelude::*;
 use std::process::Command;
@@ -6,26 +5,6 @@ use std::process::Command;
 use serde_json::Value;
 
 use super::errors::Result;
-
-pub const NAME: &'static str = env!("CARGO_PKG_NAME");
-pub const VERSION: &'static str = env!("CARGO_PKG_VERSION");
-pub const DESCRIPTION: &'static str = env!("CARGO_PKG_DESCRIPTION");
-pub const HOMEPAGE: &'static str = env!("CARGO_PKG_HOMEPAGE");
-pub const AUTHORS: &'static str = env!("CARGO_PKG_AUTHORS");
-pub const BANNER: &'static str = include_str!("banner.txt");
-
-#[derive(Serialize, Deserialize, Debug)]
-#[serde(rename_all = "camelCase")]
-pub struct Group {
-    pub hosts: Vec<Host>,
-    pub environment: HashMap<String, String>,
-}
-
-#[derive(Serialize, Deserialize, Debug)]
-#[serde(rename_all = "camelCase")]
-pub struct Host {
-    pub id: String,
-}
 
 #[derive(Serialize, Deserialize, Debug)]
 #[serde(rename_all = "camelCase")]
