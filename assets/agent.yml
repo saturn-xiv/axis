@@ -1,0 +1,5 @@
+id: "change-me"
+master:
+  host: "axis.change-me.com"
+  port: 4505
+  finger: "change-me"
