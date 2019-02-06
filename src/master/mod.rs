@@ -3,12 +3,12 @@ pub mod agents;
 use std::collections::HashMap;
 use std::path::PathBuf;
 
-use super::{errors::Result, orm::Connection};
+use super::{errors::Result, orm::Connection, Port};
 
 #[derive(Serialize, Deserialize, Debug)]
 #[serde(rename_all = "camelCase")]
 pub struct Config {
-    pub port: u16,
+    pub port: Port,
     pub tasks: Vec<Group>,
 }
 

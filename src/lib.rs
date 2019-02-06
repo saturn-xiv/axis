@@ -9,6 +9,7 @@ extern crate diesel;
 #[macro_use]
 extern crate serde_json;
 
+extern crate base64;
 extern crate chrono;
 extern crate clap;
 extern crate log4rs;
@@ -17,21 +18,45 @@ extern crate nix;
 extern crate rmp_serde;
 extern crate serde;
 extern crate toml;
+extern crate uuid;
 extern crate zmq;
-extern crate base64;
 
 pub mod agent;
 pub mod errors;
 pub mod key;
 pub mod master;
 pub mod orm;
+pub mod protocol;
 pub mod task;
 
 use std::default::Default;
+use std::fs::File;
+use std::io::prelude::*;
 use std::path::Path;
 
 use clap::{App, Arg, SubCommand};
 use diesel::Connection as DieselConnection;
+use serde::de::DeserializeOwned;
+
+#[derive(Serialize, Deserialize, Debug)]
+pub struct Port(pub u16);
+
+impl Port {
+    pub fn publisher(&self) -> u16 {
+        self.0
+    }
+    pub fn reporter(&self) -> u16 {
+        self.0 + 1
+    }
+}
+
+pub fn parse<P: AsRef<Path>, T: DeserializeOwned>(file: P) -> errors::Result<T> {
+    let mut file = File::open(file)?;
+    let mut buf = Vec::new();
+    file.read_to_end(&mut buf)?;
+    let it = toml::from_slice(&buf)?;
+    Ok(it)
+}
 
 pub fn launch() -> errors::Result<()> {
     let name = env!("CARGO_PKG_NAME");

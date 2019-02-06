@@ -8,11 +8,13 @@ use zmq::CurveKeyPair;
 
 use super::errors::Result;
 
+pub type KEY = [u8; 32];
+
 #[derive(Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Pair {
-    pub public: [u8; 32],
-    pub private: [u8; 32],
+    pub public: KEY,
+    pub private: KEY,
 }
 
 impl fmt::Display for Pair {
