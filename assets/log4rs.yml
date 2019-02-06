@@ -1,0 +1,22 @@
+appenders:
+  stdout:
+    kind: console
+  filesystem:
+    kind: rolling_file
+    path: "/var/log/axis.log"
+    policy:
+      kind: compound
+      trigger:
+        kind: size
+        limit: 50mb
+      roller:
+        kind: fixed_window
+        base: 1
+        count: 10
+        pattern: "/var/log/axis.{}.log"
+
+root:
+  level: debug
+  appenders:
+    - stdout
+    - filesystem
