@@ -44,8 +44,10 @@ impl fmt::Display for Master {
     }
 }
 
+const KEY_FILE: &'static str = "agent.key";
+
 pub fn launch(etc: PathBuf) -> Result<()> {
-    let key = Pair::new(&etc)?;
+    let key = Pair::new(&etc.join(KEY_FILE))?;
     let cfg: Config = super::parse(etc.join("agent.toml"))?;
     info!("register to master {} with id {}", cfg.master, cfg.id);
 
@@ -53,8 +55,8 @@ pub fn launch(etc: PathBuf) -> Result<()> {
 
     let req = ctx.socket(REQ)?;
     req.set_curve_serverkey(&cfg.master.finger()?)?;
-    req.set_curve_publickey(&key.public)?;
-    req.set_curve_secretkey(&key.private)?;
+    req.set_curve_publickey(&key.public.0)?;
+    req.set_curve_secretkey(&key.private.0)?;
     req.send(
         &rmp_serde::encode::to_vec(&Request::Register((cfg.id.clone(), cfg.master.finger()?)))?,
         0,
@@ -88,7 +90,7 @@ pub fn launch(etc: PathBuf) -> Result<()> {
 }
 
 pub fn finger(etc: PathBuf) -> Result<()> {
-    let key = Pair::new(&etc)?;
+    let key = Pair::new(&etc.join(KEY_FILE))?;
     println!("{}", key);
     Ok(())
 }
