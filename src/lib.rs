@@ -32,10 +32,9 @@ pub mod task;
 use std::default::Default;
 use std::fs::File;
 use std::io::prelude::*;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 
 use clap::{App, Arg, SubCommand};
-use diesel::Connection as DieselConnection;
 use serde::de::DeserializeOwned;
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -98,6 +97,13 @@ pub fn launch() -> errors::Result<()> {
                         .help("Reject the specified agent"),
                 )
                 .arg(
+                    Arg::with_name("delete")
+                        .long("delete")
+                        .short("D")
+                        .takes_value(true)
+                        .help("Delete the specified agent"),
+                )
+                .arg(
                     Arg::with_name("finger")
                         .long("finger")
                         .short("F")
@@ -118,29 +124,40 @@ pub fn launch() -> errors::Result<()> {
 
     if let Some(matches) = matches.subcommand_matches(agent) {
         if matches.is_present("finger") {
-            return agent::finger(etc);
+            return finger(etc, agent);
         }
         return agent::launch(etc);
     }
 
-    let db = orm::Connection::establish("tmp/db")?;
-
     if let Some(matches) = matches.subcommand_matches(master) {
+        let db = orm::open("tmp/db")?;
         if matches.is_present("list") {
-            return master::agents::list(etc, db);
+            return master::agents::list(db);
         }
         if matches.is_present("accept") {
             let name = matches.value_of("accept").unwrap();
-            return master::agents::accept(etc, db, name);
+            return master::agents::accept(db, name);
         }
         if matches.is_present("reject") {
             let name = matches.value_of("reject").unwrap();
-            return master::agents::reject(etc, db, name);
+            return master::agents::reject(db, name);
+        }
+        if matches.is_present("delete") {
+            let name = matches.value_of("delete").unwrap();
+            return master::agents::delete(db, name);
         }
         if matches.is_present("finger") {
-            return master::finger(etc, db);
+            return finger(etc, master);
         }
         return master::launch(etc, db);
     }
+    Ok(())
+}
+
+fn finger(etc: PathBuf, m: &'static str) -> errors::Result<()> {
+    let mut file = etc.join(m);
+    file.set_extension("key");
+    let pair = key::Pair::new(file)?;
+    println!("{}", pair);
     Ok(())
 }

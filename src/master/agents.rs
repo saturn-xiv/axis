@@ -1,15 +1,31 @@
-use std::path::PathBuf;
+use super::super::{
+    errors::Result,
+    orm::{models::Dao, Connection},
+};
 
-use super::super::{errors::Result, orm::Connection};
-
-pub fn list(_etc: PathBuf, _db: Connection) -> Result<()> {
+pub fn list(db: Connection) -> Result<()> {
+    let items = db.list()?;
+    println!("ENABLE\tNAME");
+    for it in items {
+        println!("{}\t{}", it.enable, if it.enable { "YES" } else { "NO" });
+    }
     Ok(())
 }
 
-pub fn accept(_etc: PathBuf, _db: Connection, _name: &str) -> Result<()> {
+pub fn accept(db: Connection, sn: &str) -> Result<()> {
+    let it = db.by_sn(sn)?;
+    db.enable(it.id, true)?;
     Ok(())
 }
 
-pub fn reject(_etc: PathBuf, _db: Connection, _name: &str) -> Result<()> {
+pub fn reject(db: Connection, sn: &str) -> Result<()> {
+    let it = db.by_sn(sn)?;
+    db.enable(it.id, false)?;
+    Ok(())
+}
+
+pub fn delete(db: Connection, sn: &str) -> Result<()> {
+    let it = db.by_sn(sn)?;
+    db.delete(it.id)?;
     Ok(())
 }

@@ -88,9 +88,3 @@ pub fn launch(etc: PathBuf) -> Result<()> {
         )?;
     }
 }
-
-pub fn finger(etc: PathBuf) -> Result<()> {
-    let key = Pair::new(&etc.join(KEY_FILE))?;
-    println!("{}", key);
-    Ok(())
-}

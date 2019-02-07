@@ -2,7 +2,7 @@ use std::fmt;
 use std::fs::{File, OpenOptions};
 use std::io::prelude::*;
 use std::os::unix::fs::OpenOptionsExt;
-use std::path::PathBuf;
+use std::path::Path;
 use std::str::FromStr;
 
 use failure::Error;
@@ -48,7 +48,8 @@ impl fmt::Display for Pair {
 }
 
 impl Pair {
-    pub fn new(file: &PathBuf) -> Result<Self> {
+    pub fn new<P: AsRef<Path>>(file: P) -> Result<Self> {
+        let file = file.as_ref();
         if file.exists() {
             let it = rmp_serde::decode::from_read(File::open(file)?)?;
             return Ok(it);
