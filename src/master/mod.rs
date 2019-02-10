@@ -2,7 +2,7 @@ pub mod agents;
 
 use std::path::PathBuf;
 
-use zmq::{Context, PUB, REP};
+use zmq::{Context, Socket, PUB, REP};
 
 use super::{
     errors::Result,
@@ -19,6 +19,7 @@ pub const CONFIG_FILE: &'static str = "master.toml";
 #[serde(rename_all = "camelCase")]
 pub struct Config {
     pub port: Port,
+    pub secret: String,
 }
 
 pub fn launch(etc: PathBuf, db: Connection) -> Result<()> {
@@ -37,13 +38,13 @@ pub fn launch(etc: PathBuf, db: Connection) -> Result<()> {
 
     info!("start reporter on http://localhost:{}", cfg.port.reporter());
     loop {
-        if let Err(e) = reporter(&cfg, &key, &db) {
+        if let Err(e) = reporter(&publisher, &cfg, &key, &db) {
             error!("{:?}", e);
         }
     }
 }
 
-fn reporter(cfg: &Config, key: &Pair, db: &Connection) -> Result<()> {
+fn reporter(publisher: &Socket, cfg: &Config, key: &Pair, db: &Connection) -> Result<()> {
     let ctx = Context::default();
     let rep = ctx.socket(REP)?;
     rep.set_curve_server(true)?;
@@ -69,6 +70,34 @@ fn reporter(cfg: &Config, key: &Pair, db: &Connection) -> Result<()> {
             Request::Report { host, task, result } => {
                 info!("report {}@{}\n{}", task, host, result);
                 db.by_sn(&host)?.finger.parse::<Key>()?
+            }
+            Request::Publish {
+                secret,
+                agents,
+                task,
+            } => {
+                if secret != cfg.secret {
+                    error!("auth failed");
+                }
+                info!("receive task {} to {:?}", task.id, agents);
+                let task = rmp_serde::encode::to_vec(&super::agent::task::Task {
+                    id: uuid::Uuid::new_v4(),
+                    payload: vec![super::agent::task::Payload::Shell {
+                        user: "root".to_string(),
+                        script: "uname -a".to_string(),
+                    }],
+                })?;
+                for it in agents {
+                    let it = db.by_sn(&it)?;
+                    if it.enable {
+                        publisher.send(&it.sn, zmq::SNDMORE)?;
+                        publisher.send(&task, 0)?;
+                    } else {
+                        warn!("agent {} is diabled", it.sn);
+                    }
+                }
+                info!("Done.");
+                key.public.clone()
             }
         };
         rep.set_curve_serverkey(&finger.0)?;

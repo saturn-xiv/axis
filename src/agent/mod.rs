@@ -98,7 +98,7 @@ fn reporter_socket(cfg: &Config, key: &Pair) -> Result<Socket> {
     Ok(req)
 }
 
-fn send_report(s: &Socket, r: &Request) -> Result<()> {
+pub fn send_report(s: &Socket, r: &Request) -> Result<()> {
     info!("send {}", r);
     s.send(&rmp_serde::encode::to_vec(r)?, 0)?;
     let buf = s.recv_bytes(0)?;

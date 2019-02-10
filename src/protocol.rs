@@ -1,7 +1,7 @@
 use std::fmt;
 use uuid::Uuid;
 
-use super::key::Key;
+use super::{agent::task::Task as AgentTask, key::Key};
 
 #[derive(Serialize, Deserialize, Debug)]
 #[serde(rename_all = "camelCase")]
@@ -14,6 +14,11 @@ pub enum Request {
         host: String,
         task: Uuid,
         result: String,
+    },
+    Publish {
+        secret: String,
+        agents: Vec<String>,
+        task: AgentTask,
     },
 }
 
@@ -29,6 +34,11 @@ impl fmt::Display for Request {
                 ref task,
                 ref result,
             } => write!(f, "report {}@{}\n{}", host, task, result),
+            Request::Publish {
+                secret: _,
+                ref agents,
+                ref task,
+            } => write!(f, "publish {:?}\n{}", agents, task),
         }
     }
 }
