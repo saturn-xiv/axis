@@ -46,7 +46,9 @@ pub enum Task {
 
 impl AgentTask {
     pub fn new<T: AsRef<str>, S: Serialize>(name: T, env: &S) -> Result<Self> {
-        let etc = root().join(name.as_ref());
+        let etc = root().join("tasks").join(name.as_ref());
+        info!("load task from {}", etc.display());
+        info!("parse readme");
         let readme = template(etc.join("readme.json"), env)?;
         let items: Vec<Task> = serde_json::from_str(&readme)?;
 
@@ -72,12 +74,14 @@ impl Payload {
             Task::Script { user, file } => {
                 let mut file = etc.as_ref().join(file);
                 if file.exists() {
+                    info!("read file {}", file.display());
                     items.push(Payload::Shell {
                         user: user.to_string(),
                         script: read_to_string(file)?,
                     });
                 } else {
                     file.set_extension(TEMPLATE_EXT);
+                    info!("parse file {}", file.display());
                     let script = template(file, env)?;
                     items.push(Payload::Shell {
                         user: user.to_string(),
@@ -94,14 +98,15 @@ impl Payload {
             } => {
                 let body = {
                     let mut file = etc.as_ref().join(source);
-
                     if file.exists() {
+                        info!("read file {}", file.display());
                         let mut file = File::open(file)?;
                         let mut buf = Vec::new();
                         file.read_to_end(&mut buf)?;
                         buf
                     } else {
                         file.set_extension(TEMPLATE_EXT);
+                        info!("parse file {}", file.display());
                         let script = template(file, env)?;
                         script.into_bytes()
                     }

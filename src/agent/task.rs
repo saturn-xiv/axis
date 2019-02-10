@@ -17,13 +17,13 @@ pub struct Task {
 
 impl fmt::Display for Task {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "=== begin task {} ===\n", self.id)?;
+        write!(f, "==={}===\n", self.id)?;
         for it in self.payload.iter() {
-            write!(f, "------")?;
+            write!(f, "------\n")?;
             write!(f, "{}\n", it)?;
-            write!(f, "------")?;
+            write!(f, "------\n")?;
         }
-        write!(f, "=== end task ===")?;
+        write!(f, "======")?;
         Ok(())
     }
 }

@@ -31,11 +31,14 @@ pub fn launch(etc: PathBuf, db: Connection) -> Result<()> {
         "start publisher on http://localhost:{}",
         cfg.port.publisher()
     );
+    publisher.set_curve_server(true)?;
+    publisher.set_curve_secretkey(&key.private.0)?;
     publisher.bind(&format!("tcp://*:{}", cfg.port.publisher()))?;
+
     info!("start reporter on http://localhost:{}", cfg.port.reporter());
     loop {
         if let Err(e) = reporter(&cfg, &key, &db) {
-            error!("###{:?}", e);
+            error!("{:?}", e);
         }
     }
 }
@@ -64,7 +67,7 @@ fn reporter(cfg: &Config, key: &Pair, db: &Connection) -> Result<()> {
                 finger
             }
             Request::Report { host, task, result } => {
-                info!("{}@{}\n{}", task, host, result);
+                info!("report {}@{}\n{}", task, host, result);
                 db.by_sn(&host)?.finger.parse::<Key>()?
             }
         };

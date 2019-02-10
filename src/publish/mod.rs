@@ -18,24 +18,27 @@ pub fn launch(etc: PathBuf, group: &str, task: &str, db: Connection) -> Result<(
     let group = models::Group::new(group)?;
 
     let task = AgentTask::new(task, &group.environment)?;
+    info!("{}", task);
     let task = rmp_serde::encode::to_vec(&task)?;
 
     let ctx = Context::default();
     let publisher = ctx.socket(PUB)?;
 
-    publisher.connect(&format!("tcp://*:{}", cfg.port.publisher()))?;
+    let url = format!("tcp://localhost:{}", cfg.port.publisher());
+    info!("connect to {}", url);
+    publisher.connect(&url)?;
 
     for it in group.agents {
         let it = db.by_sn(it)?;
+        info!("publish to agent {}", it.sn);
         if it.enable {
-            publisher.set_curve_serverkey(&it.finger()?.0)?;
-            publisher.set_curve_publickey(&key.public.0)?;
-            publisher.set_curve_secretkey(&key.private.0)?;
+            // publisher.set_curve_serverkey(&key.public.0)?;
             publisher.send(&it.sn, SNDMORE)?;
             publisher.send(&task, 0)?;
         } else {
             warn!("agent {} isn't enable", it.sn);
         }
     }
+    info!("Done.");
     Ok(())
 }

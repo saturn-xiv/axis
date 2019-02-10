@@ -60,8 +60,10 @@ pub fn launch(etc: PathBuf) -> Result<()> {
 
     let ctx = Context::new();
     let sub = ctx.socket(SUB)?;
-    sub.set_curve_server(true)?;
-    sub.set_curve_secretkey(&cfg.master.finger()?)?;
+
+    sub.set_curve_serverkey(&cfg.master.finger()?)?;
+    sub.set_curve_publickey(&key.public.0)?;
+    sub.set_curve_secretkey(&key.private.0)?;
     let url = format!("tcp://{}:{}", cfg.master.host, cfg.master.port.publisher());
     info!("connect to publisher {}", url);
     sub.connect(&url)?;
