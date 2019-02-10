@@ -49,24 +49,22 @@ pub fn launch(etc: PathBuf) -> Result<()> {
     let key = Pair::new(&etc.join("agent.key"))?;
     let cfg: Config = super::parse(etc.join("agent.toml"))?;
     info!("register to master {} with id {}", cfg.master, cfg.id);
-    let req = reporter(&cfg, &key)?;
-    req.send(
-        &rmp_serde::encode::to_vec(&Request::Register {
+    let req = reporter_socket(&cfg, &key)?;
+    send_report(
+        &req,
+        &Request::Register {
             host: cfg.id.clone(),
             finger: key.public.clone(),
-        })?,
-        0,
+        },
     )?;
 
     let ctx = Context::new();
     let sub = ctx.socket(SUB)?;
     sub.set_curve_server(true)?;
     sub.set_curve_secretkey(&cfg.master.finger()?)?;
-    sub.connect(&format!(
-        "{}:{}",
-        cfg.master.host,
-        cfg.master.port.publisher()
-    ))?;
+    let url = format!("tcp://{}:{}", cfg.master.host, cfg.master.port.publisher());
+    info!("connect to publisher {}", url);
+    sub.connect(&url)?;
     sub.set_subscribe(cfg.id.as_bytes())?;
 
     loop {
@@ -75,22 +73,33 @@ pub fn launch(etc: PathBuf) -> Result<()> {
         info!("receive from {} \n{}", env, task);
         let res: Vec<Result<String>> = task.payload.iter().map(|it| it.execute()).collect();
         info!("{:?}", res);
-        req.send(
-            &rmp_serde::encode::to_vec(&Request::Report {
+        send_report(
+            &req,
+            &Request::Report {
                 host: cfg.id.clone(),
                 task: task.id,
                 result: format!("{:?}", res),
-            })?,
-            0,
+            },
         )?;
     }
 }
 
-fn reporter(cfg: &Config, key: &Pair) -> Result<Socket> {
+fn reporter_socket(cfg: &Config, key: &Pair) -> Result<Socket> {
     let ctx = Context::new();
     let req = ctx.socket(REQ)?;
     req.set_curve_serverkey(&cfg.master.finger()?)?;
     req.set_curve_publickey(&key.public.0)?;
     req.set_curve_secretkey(&key.private.0)?;
+    let url = format!("tcp://{}:{}", cfg.master.host, cfg.master.port.reporter());
+    info!("connect to reporter {}", url);
+    req.connect(&url)?;
     Ok(req)
+}
+
+fn send_report(s: &Socket, r: &Request) -> Result<()> {
+    info!("send {}", r);
+    s.send(&rmp_serde::encode::to_vec(r)?, 0)?;
+    let buf = s.recv_bytes(0)?;
+    info!("receive {}", String::from_utf8(buf)?);
+    Ok(())
 }

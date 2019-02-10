@@ -6,7 +6,7 @@ use zmq::{Context, PUB, REP};
 
 use super::{
     errors::Result,
-    key::Pair,
+    key::{Key, Pair},
     orm::{models::Dao, Connection},
     protocol::Request,
     Port,
@@ -27,10 +27,15 @@ pub fn launch(etc: PathBuf, db: Connection) -> Result<()> {
 
     let ctx = Context::default();
     let publisher = ctx.socket(PUB)?;
+    info!(
+        "start publisher on http://localhost:{}",
+        cfg.port.publisher()
+    );
     publisher.bind(&format!("tcp://*:{}", cfg.port.publisher()))?;
+    info!("start reporter on http://localhost:{}", cfg.port.reporter());
     loop {
         if let Err(e) = reporter(&cfg, &key, &db) {
-            error!("{:?}", e);
+            error!("###{:?}", e);
         }
     }
 }
@@ -46,7 +51,7 @@ fn reporter(cfg: &Config, key: &Pair, db: &Connection) -> Result<()> {
         let buf = rep.recv_bytes(0)?;
         let req: Request = rmp_serde::decode::from_slice(&buf)?;
 
-        match req {
+        let finger = match req {
             Request::Register { host, finger } => {
                 info!("register {}", host);
                 match db.by_sn(&host) {
@@ -56,10 +61,16 @@ fn reporter(cfg: &Config, key: &Pair, db: &Connection) -> Result<()> {
                         db.add(&host, &finger.to_string())?;
                     }
                 };
+                finger
             }
             Request::Report { host, task, result } => {
                 info!("{}@{}\n{}", task, host, result);
+                db.by_sn(&host)?.finger.parse::<Key>()?
             }
         };
+        rep.set_curve_serverkey(&finger.0)?;
+        rep.set_curve_publickey(&key.public.0)?;
+        rep.set_curve_secretkey(&key.private.0)?;
+        rep.send("Ok", 0)?;
     }
 }

@@ -12,7 +12,7 @@ use super::errors::Result;
 
 pub type KEY = [u8; 32];
 
-#[derive(Serialize, Deserialize, Clone)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct Key(pub [u8; 32]);
 
 impl FromStr for Key {

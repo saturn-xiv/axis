@@ -22,6 +22,7 @@ pub fn launch(etc: PathBuf, group: &str, task: &str, db: Connection) -> Result<(
 
     let ctx = Context::default();
     let publisher = ctx.socket(PUB)?;
+
     publisher.connect(&format!("tcp://*:{}", cfg.port.publisher()))?;
 
     for it in group.agents {
