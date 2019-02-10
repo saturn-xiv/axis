@@ -1,22 +1,20 @@
 #[macro_use]
-extern crate failure;
-#[macro_use]
 extern crate log;
 #[macro_use]
 extern crate serde_derive;
 #[macro_use]
 extern crate diesel;
-#[macro_use]
-extern crate serde_json;
 
 extern crate base64;
 extern crate chrono;
 extern crate clap;
+extern crate failure;
 extern crate log4rs;
-extern crate mustache;
 extern crate nix;
 extern crate rmp_serde;
 extern crate serde;
+extern crate serde_json;
+extern crate tera;
 extern crate toml;
 extern crate uuid;
 extern crate zmq;
@@ -27,7 +25,6 @@ pub mod key;
 pub mod master;
 pub mod orm;
 pub mod protocol;
-pub mod task;
 
 use std::default::Default;
 use std::fs::File;
@@ -57,18 +54,24 @@ pub fn parse<P: AsRef<Path>, T: DeserializeOwned>(file: P) -> errors::Result<T> 
     Ok(it)
 }
 
+pub const NAME: &'static str = env!("CARGO_PKG_NAME");
+pub const VERSION: &'static str = env!("CARGO_PKG_VERSION");
+
 pub fn launch() -> errors::Result<()> {
-    let name = env!("CARGO_PKG_NAME");
     let master = "master";
     let agent = "agent";
-    let mut etc = Path::new("/etc").join(name);
-    if !etc.exists() {
-        etc = Path::new(".etc").to_path_buf();
-    }
+    let etc = {
+        let mut d = Path::new("/etc").join(NAME);
+        if !d.exists() {
+            d = Path::new(".etc").to_path_buf();
+        }
+        d
+    };
+
     log4rs::init_file(etc.join("log4rs.yml"), Default::default())?;
 
-    let matches = App::new(name)
-        .version(env!("CARGO_PKG_VERSION"))
+    let matches = App::new(NAME)
+        .version(VERSION)
         .author(env!("CARGO_PKG_AUTHORS"))
         .about(env!("CARGO_PKG_DESCRIPTION"))
         .before_help(include_str!("banner.txt"))

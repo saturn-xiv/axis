@@ -1,34 +1,10 @@
 pub mod agents;
+pub mod config;
 
-use std::collections::HashMap;
 use std::path::PathBuf;
 
-use super::{errors::Result, orm::Connection, Port};
-
-#[derive(Serialize, Deserialize, Debug)]
-#[serde(rename_all = "camelCase")]
-pub struct Config {
-    pub port: Port,
-    pub tasks: Vec<Group>,
-}
-
-#[derive(Serialize, Deserialize, Debug)]
-#[serde(rename_all = "camelCase")]
-pub struct Group {
-    pub hosts: Vec<Host>,
-    pub environment: HashMap<String, String>,
-}
-
-#[derive(Serialize, Deserialize, Debug)]
-#[serde(rename_all = "camelCase")]
-pub struct Host {
-    pub id: String,
-}
+use super::{errors::Result, orm::Connection};
 
 pub fn launch(_etc: PathBuf, _db: Connection) -> Result<()> {
-    Ok(())
-}
-
-pub fn finger(_etc: PathBuf, _db: Connection) -> Result<()> {
     Ok(())
 }

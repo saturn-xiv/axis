@@ -1,3 +1,5 @@
+pub mod task;
+
 use std::default::Default;
 use std::fmt;
 use std::path::PathBuf;
@@ -8,7 +10,6 @@ use super::{
     errors::Result,
     key::{Pair, KEY},
     protocol::Request,
-    task::Task,
     Port,
 };
 
@@ -74,9 +75,9 @@ pub fn launch(etc: PathBuf) -> Result<()> {
 
     loop {
         let env = String::from_utf8(sub.recv_bytes(0)?)?;
-        let task: Task = rmp_serde::decode::from_slice(&sub.recv_bytes(0)?)?;
+        let task: task::Task = rmp_serde::decode::from_slice(&sub.recv_bytes(0)?)?;
         info!("receive from {} \n{}", env, task);
-        let res = task.payload.execute();
+        let res: Vec<Result<String>> = task.payload.iter().map(|it| it.execute()).collect();
         info!("{:?}", res);
         req.send(
             &rmp_serde::encode::to_vec(&Request::Report((
