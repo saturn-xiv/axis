@@ -4,7 +4,7 @@ use std::default::Default;
 use std::fmt;
 use std::path::PathBuf;
 
-use zmq::{Context, REQ, SUB};
+use zmq::{Context, Socket, REQ, SUB};
 
 use super::{
     errors::Result,
@@ -45,24 +45,20 @@ impl fmt::Display for Master {
     }
 }
 
-const KEY_FILE: &'static str = "agent.key";
-
 pub fn launch(etc: PathBuf) -> Result<()> {
-    let key = Pair::new(&etc.join(KEY_FILE))?;
+    let key = Pair::new(&etc.join("agent.key"))?;
     let cfg: Config = super::parse(etc.join("agent.toml"))?;
     info!("register to master {} with id {}", cfg.master, cfg.id);
-
-    let ctx = Context::new();
-
-    let req = ctx.socket(REQ)?;
-    req.set_curve_serverkey(&cfg.master.finger()?)?;
-    req.set_curve_publickey(&key.public.0)?;
-    req.set_curve_secretkey(&key.private.0)?;
+    let req = reporter(&cfg, &key)?;
     req.send(
-        &rmp_serde::encode::to_vec(&Request::Register((cfg.id.clone(), cfg.master.finger()?)))?,
+        &rmp_serde::encode::to_vec(&Request::Register {
+            host: cfg.id.clone(),
+            finger: key.public.clone(),
+        })?,
         0,
     )?;
 
+    let ctx = Context::new();
     let sub = ctx.socket(SUB)?;
     sub.set_curve_server(true)?;
     sub.set_curve_secretkey(&cfg.master.finger()?)?;
@@ -80,12 +76,21 @@ pub fn launch(etc: PathBuf) -> Result<()> {
         let res: Vec<Result<String>> = task.payload.iter().map(|it| it.execute()).collect();
         info!("{:?}", res);
         req.send(
-            &rmp_serde::encode::to_vec(&Request::Report((
-                cfg.id.clone(),
-                task.id,
-                format!("{:?}", res),
-            )))?,
+            &rmp_serde::encode::to_vec(&Request::Report {
+                host: cfg.id.clone(),
+                task: task.id,
+                result: format!("{:?}", res),
+            })?,
             0,
         )?;
     }
+}
+
+fn reporter(cfg: &Config, key: &Pair) -> Result<Socket> {
+    let ctx = Context::new();
+    let req = ctx.socket(REQ)?;
+    req.set_curve_serverkey(&cfg.master.finger()?)?;
+    req.set_curve_publickey(&key.public.0)?;
+    req.set_curve_secretkey(&key.private.0)?;
+    Ok(req)
 }

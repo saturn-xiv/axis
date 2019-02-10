@@ -25,6 +25,7 @@ pub mod key;
 pub mod master;
 pub mod orm;
 pub mod protocol;
+pub mod publish;
 
 use std::default::Default;
 use std::fs::File;
@@ -60,6 +61,9 @@ pub const VERSION: &'static str = env!("CARGO_PKG_VERSION");
 pub fn launch() -> errors::Result<()> {
     let master = "master";
     let agent = "agent";
+    let publish = "publish";
+    let db = "tmp/db";
+
     let etc = {
         let mut d = Path::new("/etc").join(NAME);
         if !d.exists() {
@@ -123,6 +127,26 @@ pub fn launch() -> errors::Result<()> {
                         .help("Prints all fingerprints"),
                 ),
         )
+        .subcommand(
+            SubCommand::with_name(publish)
+                .about("Publish task to agents")
+                .arg(
+                    Arg::with_name("group")
+                        .short("G")
+                        .long("group")
+                        .takes_value(true)
+                        .required(true)
+                        .help("Publish by group"),
+                )
+                .arg(
+                    Arg::with_name("task")
+                        .long("task")
+                        .short("T")
+                        .takes_value(true)
+                        .required(true)
+                        .help("Task name"),
+                ),
+        )
         .get_matches();
 
     if let Some(matches) = matches.subcommand_matches(agent) {
@@ -133,7 +157,7 @@ pub fn launch() -> errors::Result<()> {
     }
 
     if let Some(matches) = matches.subcommand_matches(master) {
-        let db = orm::open("tmp/db")?;
+        let db = orm::open(db)?;
         if matches.is_present("list") {
             return master::agents::list(db);
         }
@@ -153,6 +177,16 @@ pub fn launch() -> errors::Result<()> {
             return finger(etc, master);
         }
         return master::launch(etc, db);
+    }
+
+    if let Some(matches) = matches.subcommand_matches(publish) {
+        let db = orm::open(db)?;
+        return publish::launch(
+            etc,
+            matches.value_of("group").unwrap(),
+            matches.value_of("task").unwrap(),
+            db,
+        );
     }
     Ok(())
 }

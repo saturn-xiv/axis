@@ -10,15 +10,8 @@ use uuid::Uuid;
 use super::super::{
     agent::task::{Payload, Task as AgentTask},
     errors::{Error, Result},
-    parse, Port, NAME,
+    parse, NAME,
 };
-
-#[derive(Serialize, Deserialize, Debug)]
-#[serde(rename_all = "camelCase")]
-pub struct Config {
-    pub port: Port,
-    pub tasks: Vec<Group>,
-}
 
 #[derive(Serialize, Deserialize, Debug)]
 #[serde(rename_all = "camelCase")]
