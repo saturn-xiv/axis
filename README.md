@@ -14,6 +14,7 @@ $ ./axis -h
 ## Build deb package
 
 ```bash
+$ sudo apt-get install libzmq3-dev
 $ cargo install cargo-deb
 $ cargo deb
 ```
