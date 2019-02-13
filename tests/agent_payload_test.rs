@@ -31,6 +31,6 @@ fn it_shell() {
         },
     ] {
         println!("run {}", it);
-        println!("result {}", it.execute().unwrap());
+        println!("result {:?}", it.execute().unwrap());
     }
 }

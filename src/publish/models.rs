@@ -1,5 +1,5 @@
 use std::collections::HashMap;
-use std::fs::{read_to_string, File};
+use std::fs::{read_dir, read_to_string, File};
 use std::io::prelude::*;
 use std::path::Path;
 use std::result::Result as StdResult;
@@ -45,6 +45,109 @@ pub enum Task {
     },
 }
 
+impl Task {
+    fn folder<P: AsRef<Path>, S: Serialize>(
+        items: &mut Vec<Payload>,
+        source: &String,
+        file: P,
+        env: &S,
+        target: &String,
+    ) -> Result<()> {
+        for entry in read_dir(file)? {
+            let entry = entry?;
+            let path = entry.path();
+            if path.is_dir() {
+                Self::folder(items, source, &path, env, target)?;
+            } else {
+                let name = path.strip_prefix(source)?.to_str().unwrap().to_string();
+                items.push(Self::file(path, env, &(target.clone() + "/" + &name))?);
+            }
+        }
+        Ok(())
+    }
+    fn file<P: AsRef<Path>, S: Serialize>(file: P, env: &S, target: &String) -> Result<Payload> {
+        let body = {
+            let mut file = file.as_ref().to_path_buf();
+            if file.exists() {
+                info!("read file {}", file.display());
+                let mut file = File::open(file)?;
+                let mut buf = Vec::new();
+                file.read_to_end(&mut buf)?;
+                buf
+            } else {
+                file.set_extension(TEMPLATE_EXT);
+                info!("parse file {}", file.display());
+                let buf = template(file, env)?;
+                buf.into_bytes()
+            }
+        };
+        Ok(Payload::File {
+            path: target.to_string(),
+            body: body,
+        })
+    }
+    fn files<P: AsRef<Path>, S: Serialize>(
+        etc: P,
+        env: &S,
+        source: &String,
+        target: &String,
+        owner: &Option<String>,
+        group: &Option<String>,
+        mode: &Option<u32>,
+    ) -> Result<Vec<Payload>> {
+        let mut items = Vec::new();
+
+        let file = etc.as_ref().join(source);
+        if file.is_dir() {
+            let mut children = Vec::new();
+            Self::folder(&mut children, source, file, env, target)?;
+            items.extend(children);
+        } else {
+            items.push(Self::file(file, env, target)?);
+        }
+
+        if let Some(owner) = owner {
+            items.push(Payload::Shell {
+                user: ROOT.to_string(),
+                script: format!("chown {} {}", owner, target),
+            });
+        }
+        if let Some(group) = group {
+            items.push(Payload::Shell {
+                user: ROOT.to_string(),
+                script: format!("chgrp {} {}", group, target),
+            });
+        }
+        if let Some(mode) = mode {
+            items.push(Payload::Shell {
+                user: ROOT.to_string(),
+                script: format!("chmod {:o} {}", mode, target),
+            });
+        }
+        Ok(items)
+    }
+    fn script<P: AsRef<Path>, S: Serialize>(
+        etc: P,
+        env: &S,
+        user: &String,
+        file: &String,
+    ) -> Result<Payload> {
+        let mut file = etc.as_ref().join(file);
+        let script = if file.exists() {
+            info!("read file {}", file.display());
+            read_to_string(file)?
+        } else {
+            file.set_extension(TEMPLATE_EXT);
+            info!("parse file {}", file.display());
+            template(file, env)?
+        };
+        Ok(Payload::Shell {
+            user: user.to_string(),
+            script: script,
+        })
+    }
+}
+
 impl AgentTask {
     pub fn new<P: AsRef<Path>, T: AsRef<str>, S: Serialize>(
         var: P,
@@ -77,22 +180,7 @@ impl Payload {
         let mut items = Vec::new();
         match task {
             Task::Script { user, file } => {
-                let mut file = etc.as_ref().join(file);
-                if file.exists() {
-                    info!("read file {}", file.display());
-                    items.push(Payload::Shell {
-                        user: user.to_string(),
-                        script: read_to_string(file)?,
-                    });
-                } else {
-                    file.set_extension(TEMPLATE_EXT);
-                    info!("parse file {}", file.display());
-                    let script = template(file, env)?;
-                    items.push(Payload::Shell {
-                        user: user.to_string(),
-                        script: script,
-                    });
-                }
+                items.push(Task::script(etc, env, &user, &file)?);
             }
             Task::Upload {
                 source,
@@ -101,43 +189,9 @@ impl Payload {
                 group,
                 mode,
             } => {
-                let body = {
-                    let mut file = etc.as_ref().join(source);
-                    if file.exists() {
-                        info!("read file {}", file.display());
-                        let mut file = File::open(file)?;
-                        let mut buf = Vec::new();
-                        file.read_to_end(&mut buf)?;
-                        buf
-                    } else {
-                        file.set_extension(TEMPLATE_EXT);
-                        info!("parse file {}", file.display());
-                        let script = template(file, env)?;
-                        script.into_bytes()
-                    }
-                };
-                items.push(Payload::File {
-                    path: target.to_string(),
-                    body: body,
-                });
-                if let Some(owner) = owner {
-                    items.push(Payload::Shell {
-                        user: ROOT.to_string(),
-                        script: format!("chown {} {}", owner, target),
-                    });
-                }
-                if let Some(group) = group {
-                    items.push(Payload::Shell {
-                        user: ROOT.to_string(),
-                        script: format!("chgrp {} {}", group, target),
-                    });
-                }
-                if let Some(mode) = mode {
-                    items.push(Payload::Shell {
-                        user: ROOT.to_string(),
-                        script: format!("chmod {:o} {}", mode, target),
-                    });
-                }
+                items.extend(Task::files(
+                    etc, env, &source, &target, &owner, &group, &mode,
+                )?);
             }
         };
         Ok(items)
