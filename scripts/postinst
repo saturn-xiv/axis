@@ -4,3 +4,5 @@ set -e
 
 mkdir -p /var/lib/axis
 chmod 700 /var/lib/axis
+
+exit 0
