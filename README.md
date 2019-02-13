@@ -17,4 +17,5 @@ $ ./axis -h
 $ sudo apt-get install libzmq3-dev libsqlite3-dev libsodium-dev
 $ cargo install cargo-deb
 $ cargo deb
+$ PKG_CONFIG_ALLOW_CROSS=1 PKG_CONFIG_DIR= PKG_CONFIG_LIBDIR=/usr/lib/arm-linux-gnueabihf/pkgconfig cargo deb --target armv7-unknown-linux-gnueabihf
 ```
