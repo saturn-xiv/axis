@@ -80,13 +80,7 @@ fn reporter(publisher: &Socket, cfg: &Config, key: &Pair, db: &Connection) -> Re
                     error!("auth failed");
                 }
                 info!("receive task {} to {:?}", task.id, agents);
-                let task = rmp_serde::encode::to_vec(&super::agent::task::Task {
-                    id: uuid::Uuid::new_v4(),
-                    payload: vec![super::agent::task::Payload::Shell {
-                        user: "root".to_string(),
-                        script: "uname -a".to_string(),
-                    }],
-                })?;
+                let task = rmp_serde::encode::to_vec(&task)?;
                 for it in agents {
                     let it = db.by_sn(&it)?;
                     if it.enable {

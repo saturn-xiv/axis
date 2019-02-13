@@ -73,14 +73,16 @@ pub fn launch(etc: PathBuf) -> Result<()> {
         let env = String::from_utf8(sub.recv_bytes(0)?)?;
         let task: task::Task = rmp_serde::decode::from_slice(&sub.recv_bytes(0)?)?;
         info!("receive from {} \n{}", env, task);
-        let res: Vec<Result<String>> = task.payload.iter().map(|it| it.execute()).collect();
-        info!("{:?}", res);
+        let res = match task.execute() {
+            Ok(v) => v,
+            Err(e) => e.to_string(),
+        };
         send_report(
             &req,
             &Request::Report {
                 host: cfg.id.clone(),
                 task: task.id,
-                result: format!("{:?}", res),
+                result: res,
             },
         )?;
     }

@@ -19,7 +19,6 @@ pub fn launch(etc: PathBuf, var: PathBuf, group: &str, task: &str, _db: Connecti
     let group = models::Group::new(&etc, group)?;
 
     let task = AgentTask::new(&var, task, &group.environment)?;
-    info!("{}", task);
 
     let ctx = Context::default();
     let req = ctx.socket(REQ)?;
