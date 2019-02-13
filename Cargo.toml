@@ -42,8 +42,8 @@ depends = "$auto, systemd"
 section = "admin"
 priority = "optional"
 assets = [
-    ["assets/agent.service", "/usr/lib/systemd/system/axis-agent.service", "644"],
-    ["assets/master.service", "/usr/lib/systemd/system/axis-master.service", "644"],
+    ["assets/agent.service", "/lib/systemd/system/axis-agent.service", "644"],
+    ["assets/master.service", "/lib/systemd/system/axis-master.service", "644"],
     ["assets/agent.toml", "etc/axis/", "600"],
     ["assets/master.toml", "etc/axis/", "600"],
     ["assets/log4rs.yml", "etc/axis/", "644"],    
