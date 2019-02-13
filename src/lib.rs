@@ -62,14 +62,21 @@ pub fn launch() -> errors::Result<()> {
     let master = "master";
     let agent = "agent";
     let publish = "publish";
-    let db = "tmp/db";
 
     let etc = {
-        let mut d = Path::new("/etc").join(NAME);
-        if !d.exists() {
-            d = Path::new(".etc").to_path_buf();
+        let mut etc = Path::new("/etc").join(NAME);
+        if !etc.exists() {
+            etc = Path::new(".etc").to_path_buf();
         }
-        d
+        etc
+    };
+
+    let var = {
+        let mut var = Path::new("/var").join("lib").join(NAME);
+        if !var.exists() {
+            var = Path::new(".var").to_path_buf();
+        }
+        var
     };
 
     log4rs::init_file(etc.join("log4rs.yml"), Default::default())?;
@@ -156,6 +163,7 @@ pub fn launch() -> errors::Result<()> {
         return agent::launch(etc);
     }
 
+    let db = var.join("db").to_str().unwrap().to_string();
     if let Some(matches) = matches.subcommand_matches(master) {
         let db = orm::open(db)?;
         if matches.is_present("list") {
@@ -183,6 +191,7 @@ pub fn launch() -> errors::Result<()> {
         let db = orm::open(db)?;
         return publish::launch(
             etc,
+            var,
             matches.value_of("group").unwrap(),
             matches.value_of("task").unwrap(),
             db,

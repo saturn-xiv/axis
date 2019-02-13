@@ -13,12 +13,12 @@ use super::{
 
 use zmq::{Context, REQ};
 
-pub fn launch(etc: PathBuf, group: &str, task: &str, _db: Connection) -> Result<()> {
+pub fn launch(etc: PathBuf, var: PathBuf, group: &str, task: &str, _db: Connection) -> Result<()> {
     let key = Pair::new(&etc.join(KEY_FILE))?;
     let cfg: Config = super::parse(etc.join(CONFIG_FILE))?;
-    let group = models::Group::new(group)?;
+    let group = models::Group::new(&var, group)?;
 
-    let task = AgentTask::new(task, &group.environment)?;
+    let task = AgentTask::new(&var, task, &group.environment)?;
     info!("{}", task);
 
     let ctx = Context::default();

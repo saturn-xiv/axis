@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 use std::fs::{read_to_string, File};
 use std::io::prelude::*;
-use std::path::{Path, PathBuf};
+use std::path::Path;
 use std::result::Result as StdResult;
 
 use serde::ser::Serialize;
@@ -10,7 +10,7 @@ use uuid::Uuid;
 use super::super::{
     agent::task::{Payload, Task as AgentTask},
     errors::{Error, Result},
-    parse, NAME,
+    parse,
 };
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -21,8 +21,8 @@ pub struct Group {
 }
 
 impl Group {
-    pub fn new<T: AsRef<str>>(name: T) -> Result<Self> {
-        let mut file = root().join("groups").join(name.as_ref());
+    pub fn new<P: AsRef<Path>, T: AsRef<str>>(etc: P, name: T) -> Result<Self> {
+        let mut file = etc.as_ref().join("groups").join(name.as_ref());
         file.set_extension("toml");
         parse(file)
     }
@@ -45,8 +45,12 @@ pub enum Task {
 }
 
 impl AgentTask {
-    pub fn new<T: AsRef<str>, S: Serialize>(name: T, env: &S) -> Result<Self> {
-        let etc = root().join("tasks").join(name.as_ref());
+    pub fn new<P: AsRef<Path>, T: AsRef<str>, S: Serialize>(
+        var: P,
+        name: T,
+        env: &S,
+    ) -> Result<Self> {
+        let etc = var.as_ref().join("tasks").join(name.as_ref());
         info!("load task from {}", etc.display());
         info!("parse readme");
         let readme = template(etc.join("readme.json"), env)?;
@@ -145,12 +149,4 @@ fn template<P: AsRef<Path>, V: Serialize>(file: P, args: &V) -> StdResult<String
     tpl.add_template_file(file.as_ref(), Some(name))?;
     let buf = tpl.render_value(name, args)?;
     Ok(buf)
-}
-
-fn root() -> PathBuf {
-    let mut d = Path::new("/etc").join("lib").join(NAME);
-    if !d.exists() {
-        d = Path::new(".etc").to_path_buf();
-    }
-    d
 }
