@@ -24,6 +24,7 @@ impl Group {
     pub fn new<P: AsRef<Path>, T: AsRef<str>>(etc: P, name: T) -> Result<Self> {
         let mut file = etc.as_ref().join("groups").join(name.as_ref());
         file.set_extension("toml");
+        info!("load group from {}", file.display());
         parse(file)
     }
 }
