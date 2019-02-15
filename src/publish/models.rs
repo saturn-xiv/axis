@@ -46,19 +46,22 @@ pub enum Task {
 }
 
 impl Task {
-    fn folder<P: AsRef<Path>, S: Serialize>(
-        items: &mut Vec<Payload>,
-        source: &String,
+    fn folder<P: AsRef<Path>, S: Serialize>(        
+        items: &mut Vec<Payload>,        
+        source: &String,        
         file: P,
         env: &S,
         target: &String,
     ) -> Result<()> {
+        let file = file.as_ref();
+        info!("find folder {}", file.display());
         for entry in read_dir(file)? {
             let entry = entry?;
             let path = entry.path();
             if path.is_dir() {
                 Self::folder(items, source, &path, env, target)?;
-            } else {
+            } else {                
+                // FIXME relative path has bugs
                 let name = path.strip_prefix(source)?.to_str().unwrap().to_string();
                 items.push(Self::file(path, env, &(target.clone() + "/" + &name))?);
             }
