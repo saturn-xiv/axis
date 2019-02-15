@@ -4,11 +4,12 @@ extern crate log;
 extern crate serde_derive;
 #[macro_use]
 extern crate diesel;
+#[macro_use]
+extern crate failure;
 
 extern crate base64;
 extern crate chrono;
 extern crate clap;
-extern crate failure;
 extern crate log4rs;
 extern crate nix;
 extern crate rmp_serde;

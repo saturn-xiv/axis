@@ -60,8 +60,7 @@ impl Task {
             let path = entry.path();
             if path.is_dir() {
                 Self::folder(items, source, &path, env, target)?;
-            } else {                
-                // FIXME relative path has bugs
+            } else {                                
                 let name = path.strip_prefix(source)?.to_str().unwrap().to_string();
                 items.push(Self::file(path, env, &(target.clone() + "/" + &name))?);
             }
@@ -90,7 +89,7 @@ impl Task {
         })
     }
     fn files<P: AsRef<Path>, S: Serialize>(
-        etc: P,
+        root: P,
         env: &S,
         source: &String,
         target: &String,
@@ -100,8 +99,11 @@ impl Task {
     ) -> Result<Vec<Payload>> {
         let mut items = Vec::new();
 
-        let file = etc.as_ref().join(source);
+        let file = root.as_ref().join(source);
         if file.is_dir() {
+            if file.is_relative(){
+                return Err(format_err!("folder path must be absolute"));
+            }
             let mut children = Vec::new();
             Self::folder(&mut children, source, file, env, target)?;
             items.extend(children);
