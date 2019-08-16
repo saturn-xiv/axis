@@ -1,6 +1,6 @@
 [package]
 name = "axis"
-version = "0.1.0"
+version = "0.2.0"
 authors = ["Jeremy Zheng <jitang.zheng@gmail.com>"]
 description = "A radically simple IT automation platform."
 homepage = "https://github.com/saturn-xiv/axis"

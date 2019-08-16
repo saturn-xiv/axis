@@ -18,12 +18,6 @@ pub enum Error {
 
     #[fail(display = "{}", _0)]
     Tera(String),
-    #[fail(display = "bad media type {}", _0)]
-    BadMediaType(String),
-    #[fail(display = "bad gender {}", _0)]
-    BadGender(String),
-    #[fail(display = "sodium init failed")]
-    SodiumInit,
 }
 
 impl From<tera::Error> for Error {

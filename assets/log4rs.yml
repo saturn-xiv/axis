@@ -8,7 +8,7 @@ appenders:
       kind: compound
       trigger:
         kind: size
-        limit: 50mb
+        limit: 512mb
       roller:
         kind: fixed_window
         base: 1
@@ -16,7 +16,7 @@ appenders:
         pattern: "/var/log/axis.{}.log"
 
 root:
-  level: debug
+  level: info
   appenders:
     - stdout
     - filesystem
