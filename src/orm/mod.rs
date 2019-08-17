@@ -3,12 +3,17 @@ pub mod schema;
 
 use std::path::Path;
 
-use diesel::{connection::SimpleConnection, Connection as DieselConnection};
+use diesel::{
+    connection::SimpleConnection, sqlite::SqliteConnection, Connection as DieselConnection,
+};
 use failure::Error;
 
 use super::errors::Result;
 
-pub type Connection = diesel::sqlite::SqliteConnection;
+#[database("sqlite")]
+pub struct Database(SqliteConnection);
+
+pub type Connection = SqliteConnection;
 
 pub fn open<T: AsRef<str>>(db: T) -> Result<Connection> {
     let db = db.as_ref();
