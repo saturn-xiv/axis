@@ -1,5 +1,4 @@
 /target/
 /tmp/
-/dist/
-/.etc/
-/.var/
+/var/
+/node_modules/
