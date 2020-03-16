@@ -17,7 +17,7 @@ pub fn etc() -> PathBuf {
 
 #[cfg(debug_assertions)]
 pub fn etc() -> PathBuf {
-    Path::new(".etc").to_path_buf()
+    Path::new("etc").to_path_buf()
 }
 
 #[cfg(not(debug_assertions))]
@@ -27,7 +27,7 @@ pub fn var() -> PathBuf {
 
 #[cfg(debug_assertions)]
 pub fn var() -> PathBuf {
-    Path::new(".var").to_path_buf()
+    Path::new("var").to_path_buf()
 }
 
 #[cfg(not(debug_assertions))]

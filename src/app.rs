@@ -1,5 +1,6 @@
 use std::collections::HashMap;
-use std::path::Path;
+use std::thread;
+use std::time::Duration;
 
 use clap::App;
 use rocket::config::{Config, Environment, Value};
@@ -7,7 +8,7 @@ use rocket_contrib::serve::StaticFiles;
 use sodiumoxide::randombytes;
 
 use super::{
-    controllers,
+    controllers, crawler,
     env::{etc, third, var, NAME, VERSION},
     errors::Result,
     orm::{open as open_db, Database},
@@ -30,7 +31,16 @@ pub fn launch() -> Result<()> {
     let mut databases = HashMap::new();
     {
         let db = var.join("db").display().to_string();
-        open_db(&db)?;
+        {
+            let db = open_db(&db)?;
+            info!("start clawer thread");
+            thread::spawn(move || loop {
+                if let Err(e) = crawler::run(&db) {
+                    error!("{:?}", e);
+                }
+                thread::sleep(Duration::from_secs(60 * 5));
+            });
+        }
         let mut it = HashMap::new();
         it.insert("url", Value::from(db));
         databases.insert("sqlite", Value::from(it));
