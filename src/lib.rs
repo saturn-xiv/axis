@@ -10,6 +10,7 @@ extern crate rand;
 extern crate ssh2;
 extern crate tempfile;
 extern crate toml;
+extern crate uuid;
 
 pub mod app;
 pub mod env;

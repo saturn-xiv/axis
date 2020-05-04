@@ -34,5 +34,5 @@ features = ["serde"]
 
 [dependencies.uuid]
 version = "0.8"
-features = ["v4"]
-
+features = ["v4", "serde"]
+default-features = false

@@ -4,9 +4,12 @@ use std::fs::File;
 use std::io::prelude::*;
 use std::path::{Path, PathBuf};
 
+use chrono::Utc;
 use handlebars::Handlebars;
+use rand::{distributions::Alphanumeric, thread_rng, Rng};
 use serde::de::DeserializeOwned;
 use tempfile::NamedTempFile;
+use uuid::Uuid;
 
 use super::{
     errors::Result,
@@ -50,7 +53,31 @@ impl Job {
             .join(name)
             .with_extension(EXT);
         info!("load jobs from {}", file.display());
-        parse(file)
+
+        let mut global = Vars::new();
+        {
+            global.insert(
+                "timestamp".to_string(),
+                Utc::now().format("%y%m%d%H%M%S%3f").to_string(),
+            );
+            global.insert("uuid".to_string(), Uuid::new_v4().to_string());
+            {
+                let mut rng = thread_rng();
+                global.insert(
+                    "random".to_string(),
+                    std::iter::repeat(())
+                        .map(|()| rng.sample(Alphanumeric))
+                        .take(32)
+                        .collect(),
+                );
+            }
+        }
+
+        let mut items: Vec<Self> = parse(file)?;
+        for it in &mut items {
+            it.vars.extend(global.clone());
+        }
+        Ok(items)
     }
     pub fn run(&self, inventory: &str) -> Result<()> {
         info!("run job {} under inventory {}", self.name, inventory);
