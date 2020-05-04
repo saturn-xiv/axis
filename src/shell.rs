@@ -96,11 +96,16 @@ impl Command for Ssh {
         Err(format_err!("shell script return {}", status))
     }
     fn upload<P: AsRef<Path>, Q: AsRef<Path>>(&self, from: P, to: Q) -> Result<()> {
-        let from = File::open(from.as_ref())?;
+        let from = from.as_ref();
+        let f_fd = File::open(from)?;
+        let f_mt = from.metadata()?;
+        if !from.metadata()?.is_file() {
+            return Err(format_err!("{} isn't a file", from.display()));
+        }
         let mut to = self
             .session
-            .scp_send(to.as_ref(), 0o400, from.metadata()?.len(), None)?;
-        let mut from = BufReader::new(from);
+            .scp_send(to.as_ref(), 0o400, f_mt.len(), None)?;
+        let mut from = BufReader::new(f_fd);
 
         let mut buf = [0; 1 << 10];
         loop {

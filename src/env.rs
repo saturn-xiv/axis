@@ -61,12 +61,9 @@ impl Job {
         for it in &self.hosts {
             hosts.push(Host::load(inventory, &it, self.vars.clone())?);
         }
-        for vars in &hosts {
-            let hostname = match vars.get("hostname") {
-                Some(v) => Ok(v),
-                None => Err(format_err!("can't get hostaname")),
-            }?;
-            if hostname == "localhost" || hostname == "127.0.0.1" {
+        for (host, vars) in &hosts {
+            debug!("host {}:\n{:?}", host, vars);
+            if host == "localhost" || host == "127.0.0.1" {
                 let host = Local;
 
                 for task in &self.tasks {
@@ -74,7 +71,7 @@ impl Job {
                 }
             } else {
                 let host = Ssh::new(
-                    hostname,
+                    host,
                     match vars.get("ssh_port") {
                         Some(v) => Some(v.parse()?),
                         None => None,
@@ -109,7 +106,7 @@ pub struct Group {
 }
 
 impl Group {
-    pub fn load(inventory: &str, name: &str, parent: Vars) -> Result<Vec<Vars>> {
+    pub fn load(inventory: &str, name: &str, parent: Vars) -> Result<Vec<(String, Vars)>> {
         let file = Path::new(inventory)
             .join("groups")
             .join(name)
@@ -134,19 +131,19 @@ impl Group {
 pub struct Host;
 
 impl Host {
-    pub fn load(inventory: &str, name: &str, parent: Vars) -> Result<Vars> {
+    pub fn load(inventory: &str, name: &str, parent: Vars) -> Result<(String, Vars)> {
         let file = Path::new(inventory)
             .join("hosts")
             .join(name)
             .with_extension(EXT);
-        let mut items = Vars::new();
-        items.extend(parent);
+        let mut vars = Vars::new();
+        vars.extend(parent);
         if file.exists() {
             info!("load host from {}", file.display());
-            let vars: Vars = parse(file)?;
-            items.extend(vars);
+            let cur: Vars = parse(file)?;
+            vars.extend(cur);
         }
-        Ok(items)
+        Ok((name.to_string(), vars))
     }
     pub fn run<T: Command + fmt::Display>(host: &T, task: &Task, vars: &Vars) -> Result<()> {
         info!("run {} on {}", task, host);

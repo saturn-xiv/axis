@@ -23,7 +23,7 @@ pub fn run() -> Result<()> {
                 .short("j")
                 .long("job")
                 .value_name("JOB")
-                .help("Job name, load from INVENTORY/jobs/JOB.toml")
+                .help("Job name")
                 .takes_value(true)
                 .required(true),
         )
