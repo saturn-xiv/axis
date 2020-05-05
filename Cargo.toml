@@ -20,23 +20,23 @@ rand = "0.7"
 ssh2 = "0.8"
 serde = "1"
 serde_derive = "1"
+lazy_static = "1"
 clap = "2"
 tempfile = "3"
 handlebars = "3"
 
-[dependencies.tokio]
-version = "0.2"
-features = ["full"]
+[dependencies.diesel]
+version = "1"
+features = ["sqlite", "r2d2"]
 
 [dependencies.chrono]
 version = "0.4"
-features = ["serde"]
-
-[dependencies.chrono-tz]
-version = "0.5"
 features = ["serde"]
 
 [dependencies.uuid]
 version = "0.8"
 features = ["v4", "serde"]
 default-features = false
+
+[dependencies.zmq]
+version = "0.9"

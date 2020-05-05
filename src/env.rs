@@ -9,7 +9,6 @@ use handlebars::Handlebars;
 use rand::{distributions::Alphanumeric, thread_rng, Rng};
 use serde::de::DeserializeOwned;
 use tempfile::NamedTempFile;
-use tokio::runtime::Runtime;
 use uuid::Uuid;
 
 use super::{
@@ -78,7 +77,6 @@ impl Job {
         Ok(items)
     }
     pub fn run(&self, inventory: &str) -> Result<()> {
-        let rt = Runtime::new()?;
         info!("run job {} under inventory {}", self.name, inventory);
         let mut hosts = Vec::new();
         for it in &self.groups {
@@ -91,7 +89,7 @@ impl Job {
             let host = host.clone();
             let vars = vars.clone();
             let tasks = self.tasks.clone();
-            rt.spawn(async move {
+            std::thread::spawn(move || {
                 if let Err(e) = Self::handle(&host, &vars, &tasks) {
                     error!("host {}: {:?}", host, e);
                 }

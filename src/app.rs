@@ -1,6 +1,6 @@
 use clap::{App, Arg};
 
-use super::{env, errors::Result};
+use super::{env, errors::Result, orm};
 
 pub fn run() -> Result<()> {
     let matches = App::new(env::NAME)
@@ -31,9 +31,10 @@ pub fn run() -> Result<()> {
 
     let inventory = matches.value_of("inventory").unwrap();
     let job = matches.value_of("job").unwrap();
+    orm::open()?;
 
-    for it in env::Job::load(job)? {
-        it.run(inventory)?;
-    }
+    // for it in env::Job::load(job)? {
+    //     it.run(inventory)?;
+    // }
     Ok(())
 }
