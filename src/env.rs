@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 use std::fmt;
-use std::fs::File;
+use std::fs::{create_dir_all, File};
 use std::io::prelude::*;
 use std::path::{Path, PathBuf};
 
@@ -8,12 +8,12 @@ use chrono::Utc;
 use handlebars::Handlebars;
 use rand::{distributions::Alphanumeric, thread_rng, Rng};
 use serde::de::DeserializeOwned;
-use tempfile::NamedTempFile;
 use uuid::Uuid;
 
 use super::{
     errors::Result,
     shell::{Auth, Command, Local, Ssh},
+    ROOT,
 };
 
 include!(concat!(env!("OUT_DIR"), "/env.rs"));
@@ -208,16 +208,21 @@ impl Host {
                 group,
                 mode,
             } => {
-                host.download(remote, local)?;
+                let root = ROOT.join(host.to_string()).join("downloads");
+                if !root.exists() {
+                    create_dir_all(&root)?;
+                }
+                let local = root.join(local);
+                host.download(remote, &local)?;
                 if cfg!(unix) {
                     if let Some(owner) = owner {
-                        Self::run(&Local, &Task::chown(local, owner, None), vars)?;
+                        Self::run(&Local, &Task::chown(&local, owner, None), vars)?;
                     }
                     if let Some(group) = group {
-                        Self::run(&Local, &Task::chgrp(local, group, None), vars)?;
+                        Self::run(&Local, &Task::chgrp(&local, group, None), vars)?;
                     }
                     if let Some(mode) = mode {
-                        Self::run(&Local, &Task::chmod(local, mode, None), vars)?;
+                        Self::run(&Local, &Task::chmod(&local, mode, None), vars)?;
                     }
                 }
             }
@@ -233,7 +238,7 @@ impl Host {
                     host,
                     &Task::Upload {
                         remote: remote.clone(),
-                        local: tmp.path().to_path_buf(),
+                        local: tmp,
                         owner: owner.clone(),
                         group: group.clone(),
                         mode: mode.clone(),
@@ -301,14 +306,21 @@ impl Task {
             user,
         }
     }
-    fn template<P: AsRef<Path>>(tpl: P, var: &Vars) -> Result<NamedTempFile> {
-        let rdr = NamedTempFile::new()?;
-        let tpl = tpl.as_ref();
-        let name = format!("{}", tpl.display());
-        let mut reg = Handlebars::new();
-        reg.set_strict_mode(true);
-        reg.register_template_file(&name, tpl)?;
-        reg.render_to_write(&name, var, &rdr)?;
+    fn template<P: AsRef<Path>>(tpl: P, var: &Vars) -> Result<PathBuf> {
+        let root = ROOT.join("cache");
+        if !root.exists() {
+            create_dir_all(&root)?;
+        }
+        let rdr = root.join(Uuid::new_v4().to_string());
+        {
+            let rdr = File::create(&rdr)?;
+            let tpl = tpl.as_ref();
+            let name = format!("{}", tpl.display());
+            let mut reg = Handlebars::new();
+            reg.set_strict_mode(true);
+            reg.register_template_file(&name, tpl)?;
+            reg.render_to_write(&name, var, &rdr)?;
+        }
         Ok(rdr)
     }
 }
