@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+use std::sync::{Arc, Mutex};
 use std::thread;
 
 use clap::{App, Arg};
@@ -5,7 +7,7 @@ use clap::{App, Arg};
 use super::{
     env,
     errors::Result,
-    models::{Host, Job},
+    models::{Host, Job, Report},
 };
 
 pub fn run() -> Result<()> {
@@ -38,22 +40,49 @@ pub fn run() -> Result<()> {
     let inventory = matches.value_of("inventory").unwrap();
     let job = matches.value_of("job").unwrap();
 
+    let status: HashMap<String, Report> = HashMap::new();
+    let status = Arc::new(Mutex::new(status));
+
     let jobs = Job::load(inventory, job)?;
-    for (hosts, tasks) in jobs {
+    for (job, hosts, tasks) in jobs {
         let mut children = vec![];
 
         for (host, vars) in hosts {
+            let status = status.clone();
+            if let Ok(status) = status.lock() {
+                if let Some(it) = status.get(&host) {
+                    if it.reason.is_some() {
+                        warn!("ignore host {}", host);
+                        continue;
+                    }
+                }
+            }
+            let job = job.clone();
             let host = host.clone();
             let vars = vars.clone();
             let tasks = tasks.clone();
             children.push(thread::spawn(move || {
-                if let Err(e) = Host::handle(&host, &vars, &tasks) {
-                    error!("{} {:?}", host, e);
+                let reason = match Host::handle(&host, &vars, &tasks) {
+                    Ok(()) => None,
+                    Err(e) => {
+                        error!("{} {:?}", host, e);
+                        Some(e)
+                    }
+                };
+                if let Ok(ref mut status) = status.lock() {
+                    status.insert(host.clone(), Report::new(job.clone(), reason));
                 }
             }));
         }
         for it in children {
             let _ = it.join();
+        }
+    }
+
+    println!("{:32} {}", "HOST", "REPORT");
+    if let Ok(status) = status.lock() {
+        for (h, r) in status.iter() {
+            println!("{:32} {}", h, r);
         }
     }
     Ok(())

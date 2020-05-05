@@ -4,7 +4,8 @@ use std::fs::{create_dir_all, File};
 use std::io::prelude::*;
 use std::path::{Path, PathBuf};
 
-use chrono::Utc;
+use chrono::{NaiveDateTime, Utc};
+use failure::Error;
 use handlebars::Handlebars;
 use rand::{distributions::Alphanumeric, thread_rng, Rng};
 use serde::de::DeserializeOwned;
@@ -17,6 +18,7 @@ use super::{
 };
 
 pub type Vars = HashMap<String, String>;
+pub type Excutor = (String, HashMap<String, Vars>, Vec<Task>);
 
 pub const EXT: &str = "toml";
 pub const ALL: &str = "all";
@@ -32,18 +34,52 @@ macro_rules! load_host_vars {
     };
 }
 
+#[derive(Debug)]
+pub struct Report {
+    pub job: String,
+    pub updated: NaiveDateTime,
+    pub reason: Option<Error>,
+}
+
+impl Report {
+    pub fn new(job: String, reason: Option<Error>) -> Self {
+        Self {
+            job,
+            reason,
+            updated: Utc::now().naive_local(),
+        }
+    }
+}
+
+impl fmt::Display for Report {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(
+            f,
+            "{:32} {:16} {}",
+            self.job,
+            self.updated,
+            match &self.reason {
+                Some(e) => {
+                    e.to_string()
+                }
+                None => "Done.".to_string(),
+            }
+        )
+    }
+}
+
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct Job {
-    name: String,
-    groups: Vec<String>,
-    hosts: Vec<String>,
-    tasks: Vec<Task>,
-    vars: Vars,
+    pub name: String,
+    pub groups: Vec<String>,
+    pub hosts: Vec<String>,
+    pub tasks: Vec<Task>,
+    pub vars: Vars,
 }
 
 impl Job {
-    pub fn load(inventory: &str, name: &str) -> Result<Vec<(HashMap<String, Vars>, Vec<Task>)>> {
+    pub fn load(inventory: &str, name: &str) -> Result<Vec<Excutor>> {
         let mut global = Vars::new();
         {
             global.insert(
@@ -78,7 +114,7 @@ impl Job {
                 hosts.insert(host.to_string(), Host::load(inventory, host, vars.clone())?);
             }
 
-            items.push((hosts, job.tasks.clone()));
+            items.push((job.name.clone(), hosts, job.tasks.clone()));
         }
         Ok(items)
     }
@@ -87,8 +123,8 @@ impl Job {
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct Group {
-    hosts: Vec<String>,
-    vars: Vars,
+    pub hosts: Vec<String>,
+    pub vars: Vars,
 }
 
 impl Group {
@@ -239,7 +275,7 @@ impl Host {
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
-#[serde(rename_all = "camelCase")]
+#[serde(rename_all = "camelCase", tag = "type")]
 pub enum Task {
     Upload {
         remote: PathBuf,
