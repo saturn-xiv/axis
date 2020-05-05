@@ -3,4 +3,9 @@ groups = ['web']
 hosts = ['localhost', '192.168.8.22']
 
 [vars]
-job_description = 'test ssh section'
+job_description = "Ping-Pong"
+
+[[task]]
+upload = {}
+download = {}
+shell = {script = "uname -a"}

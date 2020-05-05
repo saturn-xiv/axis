@@ -1,6 +1,12 @@
+use std::thread;
+
 use clap::{App, Arg};
 
-use super::{env, errors::Result};
+use super::{
+    env,
+    errors::Result,
+    models::{Host, Job},
+};
 
 pub fn run() -> Result<()> {
     let matches = App::new(env::NAME)
@@ -32,8 +38,23 @@ pub fn run() -> Result<()> {
     let inventory = matches.value_of("inventory").unwrap();
     let job = matches.value_of("job").unwrap();
 
-    for it in env::Job::load(job)? {
-        it.run(inventory)?;
+    let jobs = Job::load(inventory, job)?;
+    for (hosts, tasks) in jobs {
+        let mut children = vec![];
+
+        for (host, vars) in hosts {
+            let host = host.clone();
+            let vars = vars.clone();
+            let tasks = tasks.clone();
+            children.push(thread::spawn(move || {
+                if let Err(e) = Host::handle(&host, &vars, &tasks) {
+                    error!("{} {:?}", host, e);
+                }
+            }));
+        }
+        for it in children {
+            let _ = it.join();
+        }
     }
     Ok(())
 }

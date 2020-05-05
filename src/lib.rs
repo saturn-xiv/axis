@@ -17,6 +17,7 @@ extern crate uuid;
 pub mod app;
 pub mod env;
 pub mod errors;
+pub mod models;
 pub mod shell;
 
 use std::path::{Path, PathBuf};
