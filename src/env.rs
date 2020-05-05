@@ -9,6 +9,7 @@ use handlebars::Handlebars;
 use rand::{distributions::Alphanumeric, thread_rng, Rng};
 use serde::de::DeserializeOwned;
 use tempfile::NamedTempFile;
+use tokio::runtime::Runtime;
 use uuid::Uuid;
 
 use super::{
@@ -47,11 +48,8 @@ pub struct Job {
 }
 
 impl Job {
-    pub fn load(inventory: &str, name: &str) -> Result<Vec<Self>> {
-        let file = Path::new(inventory)
-            .join("jobs")
-            .join(name)
-            .with_extension(EXT);
+    pub fn load(name: &str) -> Result<Vec<Self>> {
+        let file = Path::new("jobs").join(name).with_extension(EXT);
         info!("load jobs from {}", file.display());
 
         let mut global = Vars::new();
@@ -80,6 +78,7 @@ impl Job {
         Ok(items)
     }
     pub fn run(&self, inventory: &str) -> Result<()> {
+        let rt = Runtime::new()?;
         info!("run job {} under inventory {}", self.name, inventory);
         let mut hosts = Vec::new();
         for it in &self.groups {
@@ -89,37 +88,48 @@ impl Job {
             hosts.push(Host::load(inventory, &it, self.vars.clone())?);
         }
         for (host, vars) in &hosts {
-            debug!("host {}:\n{:?}", host, vars);
-            if host == "localhost" || host == "127.0.0.1" {
-                let host = Local;
-
-                for task in &self.tasks {
-                    Host::run(&host, &task, &vars)?;
+            let host = host.clone();
+            let vars = vars.clone();
+            let tasks = self.tasks.clone();
+            rt.spawn(async move {
+                if let Err(e) = Self::handle(&host, &vars, &tasks) {
+                    error!("host {}: {:?}", host, e);
                 }
-            } else {
-                let host = Ssh::new(
-                    host,
-                    match vars.get("ssh_port") {
-                        Some(v) => Some(v.parse()?),
-                        None => None,
-                    },
-                    match vars.get("ssh_user") {
-                        Some(v) => Some(v.to_string()),
-                        None => None,
-                    },
-                    if let Some(v) = vars.get("ssh_password") {
-                        Some(Auth::Password(v.to_string()))
-                    } else if let Some(v) = vars.get("ssh_private_key") {
-                        Some(Auth::Key(Path::new(v).to_path_buf()))
-                    } else {
-                        None
-                    },
-                )?;
+            });
+        }
+        Ok(())
+    }
 
-                for task in &self.tasks {
-                    Host::run(&host, &task, &vars)?;
-                }
-            };
+    fn handle(hostname: &str, vars: &Vars, tasks: &[Task]) -> Result<()> {
+        debug!("host {}:\n{:?}", hostname, vars);
+        if hostname == "localhost" || hostname == "127.0.0.1" {
+            let host = Local;
+            for task in tasks {
+                Host::run(&host, task, vars)?;
+            }
+        } else {
+            let host = Ssh::new(
+                hostname,
+                match vars.get("ssh_port") {
+                    Some(v) => Some(v.parse()?),
+                    None => None,
+                },
+                match vars.get("ssh_user") {
+                    Some(v) => Some(v.to_string()),
+                    None => None,
+                },
+                if let Some(v) = vars.get("ssh_password") {
+                    Some(Auth::Password(v.to_string()))
+                } else if let Some(v) = vars.get("ssh_private_key") {
+                    Some(Auth::Key(Path::new(v).to_path_buf()))
+                } else {
+                    None
+                },
+            )?;
+
+            for task in tasks {
+                Host::run(&host, task, vars)?;
+            }
         }
         Ok(())
     }

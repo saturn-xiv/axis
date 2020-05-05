@@ -9,6 +9,7 @@ extern crate clap;
 extern crate rand;
 extern crate ssh2;
 extern crate tempfile;
+extern crate tokio;
 extern crate toml;
 extern crate uuid;
 

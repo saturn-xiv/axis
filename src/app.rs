@@ -32,7 +32,7 @@ pub fn run() -> Result<()> {
     let inventory = matches.value_of("inventory").unwrap();
     let job = matches.value_of("job").unwrap();
 
-    for it in env::Job::load(inventory, job)? {
+    for it in env::Job::load(job)? {
         it.run(inventory)?;
     }
     Ok(())
