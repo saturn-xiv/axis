@@ -9,9 +9,10 @@ extern crate lazy_static;
 
 extern crate chrono;
 extern crate clap;
+extern crate dirs;
 extern crate rand;
+extern crate serde_json;
 extern crate ssh2;
-extern crate toml;
 extern crate uuid;
 
 pub mod app;

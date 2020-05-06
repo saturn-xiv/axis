@@ -5,6 +5,7 @@ use std::net::TcpStream;
 use std::path::{Path, PathBuf};
 use std::process::Command as ShellCommand;
 
+use dirs::home_dir;
 use ssh2::Session;
 
 use super::errors::Result;
@@ -38,7 +39,10 @@ impl Ssh {
         };
         let auth = match auth {
             Some(v) => v,
-            None => Auth::Key(Path::new("home").join(&user).join(".ssh").join("id_sub")),
+            None => Auth::Key(match home_dir() {
+                Some(v) => v.join(".ssh").join("id_rsa"),
+                None => Path::new(".ssh").join("id_rsa"),
+            }),
         };
         if let Auth::Key(ref file) = auth {
             if !file.exists() {
@@ -87,13 +91,17 @@ impl Command for Ssh {
 
         let mut buf = String::new();
         channel.read_to_string(&mut buf)?;
-        debug!("{}", buf);
+        debug!("{}:\n{}", self.name, buf);
         channel.wait_close()?;
         let status = channel.exit_status()?;
         if 0 == status {
             return Ok(());
         }
-        Err(format_err!("shell script return {}", status))
+        Err(format_err!(
+            "shell script return {}:\n{}",
+            self.name,
+            status
+        ))
     }
     fn upload<P: AsRef<Path>, Q: AsRef<Path>>(&self, from: P, to: Q) -> Result<()> {
         let from = from.as_ref();
@@ -121,8 +129,8 @@ impl Command for Ssh {
         let to = to.as_ref();
         let from = from.as_ref();
         let (ch, stat) = self.session.scp_recv(from)?;
-        if !stat.is_file() {
-            return Err(format_err!("{} isn't a file", from.display()));
+        if stat.is_dir() {
+            return Err(format_err!("{}@{} isn't a file", from.display(), self.name));
         }
         let mut from = BufReader::new(ch);
         let mut to = BufWriter::new(File::create(to)?);

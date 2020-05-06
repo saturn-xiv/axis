@@ -1,0 +1,11 @@
+{
+    "hosts": [
+        "192.168.8.21",
+        "192.168.8.22"
+    ],
+    "vars": {
+        "web key 1": "web val 1",
+        "web key 2": "web val 2",
+        "web key 3": "web val 3"
+    }
+}

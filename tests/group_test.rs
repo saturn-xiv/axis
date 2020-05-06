@@ -9,7 +9,7 @@ fn generate() {
 
     println!(
         "{}",
-        toml::to_string(&Group {
+        serde_json::to_string_pretty(&Group {
             hosts: vec!["host 1".to_string(), "host 2".to_string()],
             vars: vars,
         })

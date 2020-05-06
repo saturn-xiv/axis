@@ -1,0 +1,49 @@
+[{
+    "name": "job 1",
+    "groups": [
+        "web"
+    ],
+    "hosts": [
+        "localhost"
+    ],
+    "tasks": [{
+            "type": "upload",
+            "remote": "/tmp/hello",
+            "local": "packages/hi",
+            "owner": null,
+            "group": null,
+            "mode": null
+        },
+        {
+            "type": "download",
+            "remote": "/etc/os-release",
+            "local": "os",
+            "owner": null,
+            "group": null,
+            "mode": null
+        },
+        {
+            "type": "shell",
+            "user": null,
+            "script": "uname -a"
+        },
+        {
+            "type": "template",
+            "remote": "/tmp/ping.sh",
+            "local": "templates/ping.sh.hbs",
+            "owner": null,
+            "group": null,
+            "mode": "500"
+        },
+        {
+            "type": "shell",
+            "user": null,
+            "script": "/tmp/ping.sh"
+        }
+    ],
+    "vars": {
+        "job key 1": "job val 1",
+        "job key 2": "job val 2",
+        "job key 3": "job val 3"
+    }
+}]

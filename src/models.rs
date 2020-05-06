@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 use std::fmt;
 use std::fs::{create_dir_all, File};
-use std::io::prelude::*;
+use std::io::BufReader;
 use std::path::{Path, PathBuf};
 
 use chrono::{NaiveDateTime, Utc};
@@ -20,7 +20,7 @@ use super::{
 pub type Vars = HashMap<String, String>;
 pub type Excutor = (String, HashMap<String, Vars>, Vec<Task>);
 
-pub const EXT: &str = "toml";
+pub const EXT: &str = "json";
 pub const ALL: &str = "all";
 
 macro_rules! load_host_vars {
@@ -55,9 +55,9 @@ impl fmt::Display for Report {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(
             f,
-            "{:32} {:16} {}",
-            self.job,
+            "{} {}\t{}",
             self.updated,
+            self.job,
             match &self.reason {
                 Some(e) => {
                     e.to_string()
@@ -388,9 +388,8 @@ impl fmt::Display for Task {
 }
 
 fn parse<P: AsRef<Path>, T: DeserializeOwned>(file: P) -> Result<T> {
-    let mut file = File::open(file)?;
-    let mut buf = Vec::new();
-    file.read_to_end(&mut buf)?;
-    let it = toml::from_slice(&buf)?;
+    let file = File::open(file)?;
+    let reader = BufReader::new(file);
+    let it = serde_json::from_reader(reader)?;
     Ok(it)
 }

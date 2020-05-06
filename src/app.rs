@@ -79,10 +79,10 @@ pub fn run() -> Result<()> {
         }
     }
 
-    println!("{:32} {}", "HOST", "REPORT");
+    println!("{:16} {}", "HOST", "REPORT");
     if let Ok(status) = status.lock() {
         for (h, r) in status.iter() {
-            println!("{:32} {}", h, r);
+            println!("{:16} {}", h, r);
         }
     }
     Ok(())

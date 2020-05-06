@@ -54,5 +54,5 @@ fn generate() {
             vars: vars.clone(),
         },
     ];
-    println!("{}", toml::to_string(&items).unwrap())
+    println!("{}", serde_json::to_string_pretty(&items).unwrap())
 }
