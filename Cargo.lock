@@ -62,8 +62,8 @@ dependencies = [
  "rand",
  "serde",
  "serde_derive",
- "serde_json",
  "ssh2",
+ "toml 0.4.10",
  "uuid",
  "zmq",
 ]
@@ -423,7 +423,7 @@ checksum = "73b122901b3a675fac8cecf68dcb2f0d3036193bc861d1ac0e1c337f7d5254c2"
 dependencies = [
  "error-chain",
  "pkg-config",
- "toml",
+ "toml 0.2.1",
 ]
 
 [[package]]
@@ -805,6 +805,15 @@ name = "toml"
 version = "0.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "736b60249cb25337bc196faa43ee12c705e426f3d55c214d73a4e7be06f92cb4"
+
+[[package]]
+name = "toml"
+version = "0.4.10"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "758664fc71a3a69038656bee8b6be6477d2a6c315a6b81f7081f591bffa4111f"
+dependencies = [
+ "serde",
+]
 
 [[package]]
 name = "typenum"

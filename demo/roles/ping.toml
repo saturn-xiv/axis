@@ -1,3 +1,11 @@
+name = "role 1"
+
+[vars]
+"role key 1" = "role val 1"
+"role key 2" = "role val 2"
+
+[[jobs]]
+
 [{
     "name": "job 1",
     "groups": [

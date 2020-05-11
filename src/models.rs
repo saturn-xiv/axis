@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 use std::fmt;
 use std::fs::{create_dir_all, File};
-use std::io::BufReader;
+use std::io::prelude::*;
 use std::path::{Path, PathBuf};
 
 use chrono::{NaiveDateTime, Utc};
@@ -20,7 +20,7 @@ use super::{
 pub type Vars = HashMap<String, String>;
 pub type Excutor = (String, HashMap<String, Vars>, Vec<Task>);
 
-pub const EXT: &str = "json";
+pub const EXT: &str = "toml";
 pub const ALL: &str = "all";
 
 macro_rules! load_host_vars {
@@ -70,15 +70,13 @@ impl fmt::Display for Report {
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
-pub struct Job {
+pub struct Role {
     pub name: String,
-    pub groups: Vec<String>,
-    pub hosts: Vec<String>,
-    pub tasks: Vec<Task>,
+    pub jobs: Vec<Job>,
     pub vars: Vars,
 }
 
-impl Job {
+impl Role {
     pub fn load(inventory: &str, name: &str) -> Result<Vec<Excutor>> {
         let mut global = Vars::new();
         {
@@ -99,10 +97,11 @@ impl Job {
             }
         }
         let mut items = Vec::new();
-        let file = Path::new("jobs").join(name).with_extension(EXT);
-        debug!("load jobs from {}", file.display());
-        let jobs: Vec<Job> = parse(file)?;
-        for job in &jobs {
+        let file = Path::new("roles").join(name).with_extension(EXT);
+        debug!("load roles from {}", file.display());
+        let role: Self = parse(file)?;
+        global.extend(role.vars.clone());
+        for job in &role.jobs {
             let mut vars = Vars::new();
             vars.extend(global.clone());
             vars.extend(job.vars.clone());
@@ -118,6 +117,16 @@ impl Job {
         }
         Ok(items)
     }
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct Job {
+    pub name: String,
+    pub groups: Vec<String>,
+    pub hosts: Vec<String>,
+    pub tasks: Vec<Task>,
+    pub vars: Vars,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -387,9 +396,10 @@ impl fmt::Display for Task {
     }
 }
 
-fn parse<P: AsRef<Path>, T: DeserializeOwned>(file: P) -> Result<T> {
-    let file = File::open(file)?;
-    let reader = BufReader::new(file);
-    let it = serde_json::from_reader(reader)?;
+pub fn parse<P: AsRef<Path>, T: DeserializeOwned>(file: P) -> Result<T> {
+    let mut file = File::open(file)?;
+    let mut buf = Vec::new();
+    file.read_to_end(&mut buf)?;
+    let it = toml::from_slice(&buf)?;
     Ok(it)
 }

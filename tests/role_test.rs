@@ -1,6 +1,6 @@
 use std::path::Path;
 
-use axis::models::{Job, Task, Vars};
+use axis::models::{Job, Role, Task, Vars};
 
 #[test]
 fn generate() {
@@ -31,7 +31,7 @@ fn generate() {
             user: None,
         },
     ];
-    let items = vec![
+    let jobs = vec![
         Job {
             name: "job 1".to_string(),
             groups: groups.clone(),
@@ -54,5 +54,13 @@ fn generate() {
             vars: vars.clone(),
         },
     ];
-    println!("{}", serde_json::to_string_pretty(&items).unwrap())
+    println!(
+        "{}",
+        toml::to_string_pretty(&Role {
+            name: "role 1".to_string(),
+            jobs: jobs,
+            vars
+        })
+        .unwrap()
+    )
 }

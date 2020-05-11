@@ -7,7 +7,7 @@ use clap::{App, Arg};
 use super::{
     env,
     errors::Result,
-    models::{Host, Job, Report},
+    models::{Host, Report, Role},
 };
 
 pub fn run() -> Result<()> {
@@ -27,23 +27,23 @@ pub fn run() -> Result<()> {
                 .required(true),
         )
         .arg(
-            Arg::with_name("job")
-                .short("j")
-                .long("job")
-                .value_name("JOB")
-                .help("Job name")
+            Arg::with_name("role")
+                .short("r")
+                .long("role")
+                .value_name("ROLE")
+                .help("Role name")
                 .takes_value(true)
                 .required(true),
         )
         .get_matches();
 
     let inventory = matches.value_of("inventory").unwrap();
-    let job = matches.value_of("job").unwrap();
+    let role = matches.value_of("role").unwrap();
 
     let status: HashMap<String, Report> = HashMap::new();
     let status = Arc::new(Mutex::new(status));
 
-    let jobs = Job::load(inventory, job)?;
+    let jobs = Role::load(inventory, role)?;
     for (job, hosts, tasks) in jobs {
         let mut children = vec![];
 

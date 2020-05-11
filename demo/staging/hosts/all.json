@@ -1,4 +1,0 @@
-{
-    "ssh_user": "root",
-    "ssh_private_key": ".ssh/staging"
-}
