@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::collections::BTreeMap;
 use std::sync::{Arc, Mutex};
 use std::thread;
 
@@ -40,7 +40,7 @@ pub fn run() -> Result<()> {
     let inventory = matches.value_of("inventory").unwrap();
     let role = matches.value_of("role").unwrap();
 
-    let status: HashMap<String, Report> = HashMap::new();
+    let status: BTreeMap<String, Report> = BTreeMap::new();
     let status = Arc::new(Mutex::new(status));
 
     let jobs = Role::load(inventory, role)?;
@@ -51,9 +51,8 @@ pub fn run() -> Result<()> {
             let status = status.clone();
             if let Ok(status) = status.lock() {
                 if let Some(it) = status.get(&host) {
-                    if it.reason.is_some() {
-                        warn!("ignore host {}", host);
-                        continue;
+                    if let Some(e) = &it.reason {
+                        return Err(format_err!("host {} {}", host, e));
                     }
                 }
             }
@@ -79,7 +78,7 @@ pub fn run() -> Result<()> {
         }
     }
 
-    println!("{:16} {}", "HOST", "REPORT");
+    println!("{:16} REPORT", "HOST");
     if let Ok(status) = status.lock() {
         for (h, r) in status.iter() {
             println!("{:16} {}", h, r);

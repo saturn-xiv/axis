@@ -1,57 +1,90 @@
-name = "role 1"
+name = 'role 1'
 
 [vars]
-"role key 1" = "role val 1"
-"role key 2" = "role val 2"
+"role key 2" = 'role val 2'
+"role key 3" = 'role val 3'
+"role key 1" = 'role val 1'
 
 [[jobs]]
+name = 'job 1'
+groups = [
+    'web'
+]
+hosts = [
+    '192.168.8.20',
+]
 
-[{
-    "name": "job 1",
-    "groups": [
-        "web"
-    ],
-    "hosts": [
-        "localhost"
-    ],
-    "tasks": [{
-            "type": "upload",
-            "remote": "/tmp/hello",
-            "local": "packages/hi",
-            "owner": null,
-            "group": null,
-            "mode": null
-        },
-        {
-            "type": "download",
-            "remote": "/etc/os-release",
-            "local": "os",
-            "owner": null,
-            "group": null,
-            "mode": null
-        },
-        {
-            "type": "shell",
-            "user": null,
-            "script": "uname -a"
-        },
-        {
-            "type": "template",
-            "remote": "/tmp/ping.sh",
-            "local": "templates/ping.sh.hbs",
-            "owner": null,
-            "group": null,
-            "mode": "500"
-        },
-        {
-            "type": "shell",
-            "user": null,
-            "script": "/tmp/ping.sh"
-        }
-    ],
-    "vars": {
-        "job key 1": "job val 1",
-        "job key 2": "job val 2",
-        "job key 3": "job val 3"
-    }
-}]
+[[jobs.tasks]]
+type = 'upload'
+remote = '/tmp/hello'
+local = 'packages/hi'
+
+[[jobs.tasks]]
+type = 'download'
+remote = '/etc/os-release'
+local = 'down'
+
+[[jobs.tasks]]
+type = 'shell'
+script = 'uname -a'
+
+[jobs.vars]
+"job 1 key 1" = 'job 1 val 1'
+"job 1 key 2" = 'job 1 val 2'
+"job 1 key 3" = 'job 1 val 3'
+
+[[jobs]]
+name = 'job 2'
+groups = [
+    'web'
+]
+hosts = [
+    'localhost'
+]
+
+[[jobs.tasks]]
+type = 'upload'
+remote = '/tmp/hello'
+local = 'packages/hi'
+
+[[jobs.tasks]]
+type = 'download'
+remote = '/etc/os-release'
+local = 'down'
+
+[[jobs.tasks]]
+type = 'shell'
+script = 'uname -a'
+
+[jobs.vars]
+"job 2 key 1" = 'job 2 val 1'
+"job 2 key 2" = 'job 2 val 2'
+"job 2 key 3" = 'job 2 val 3'
+
+[[jobs]]
+name = 'job 3'
+groups = [
+    'web',
+]
+hosts = [
+    '192.168.8.21'
+]
+
+[[jobs.tasks]]
+type = 'upload'
+remote = '/tmp/hello'
+local = 'packages/hi'
+
+[[jobs.tasks]]
+type = 'download'
+remote = '/etc/os-release'
+local = 'down'
+
+[[jobs.tasks]]
+type = 'shell'
+script = 'uname -a'
+
+[jobs.vars]
+"job 3 key 1" = 'job 3 val 1'
+"job 3 key 2" = 'job 3 val 2'
+"job 3 key 3" = 'job 3 val 3'

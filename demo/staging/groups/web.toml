@@ -4,6 +4,6 @@ hosts = [
 ]
 
 [vars] 
-"web key 1" = "web val 1"
-"web key 2" = "web val 2"
-"web key 3" = "web val 3"
+"web group key 1" = "web group val 1"
+"web group key 2" = "web group val 2"
+"web group key 3" = "web group val 3"

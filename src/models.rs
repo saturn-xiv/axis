@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::collections::BTreeMap;
 use std::fmt;
 use std::fs::{create_dir_all, File};
 use std::io::prelude::*;
@@ -17,17 +17,17 @@ use super::{
     ROOT,
 };
 
-pub type Vars = HashMap<String, String>;
-pub type Excutor = (String, HashMap<String, Vars>, Vec<Task>);
+pub type Vars = BTreeMap<String, String>;
+pub type Excutor = (String, BTreeMap<String, Vars>, Vec<Task>);
 
 pub const EXT: &str = "toml";
 pub const ALL: &str = "all";
 
 macro_rules! load_host_vars {
     ($i:expr, $n:expr, $v:expr) => {
-        let file = Path::new($i).join("hosts").join($n).with_extension(EXT);
+        let file = Path::new($i).join("hosts").join(format!("{}.{}", $n, EXT));
         if file.exists() {
-            debug!("load vars from {}", file.display());
+            debug!("load host vars from {}", file.display());
             let cur: Vars = parse(file)?;
             $v.extend(cur);
         }
@@ -56,7 +56,7 @@ impl fmt::Display for Report {
         write!(
             f,
             "{} {}\t{}",
-            self.updated,
+            self.updated.format("%c"),
             self.job,
             match &self.reason {
                 Some(e) => {
@@ -102,14 +102,17 @@ impl Role {
         let role: Self = parse(file)?;
         global.extend(role.vars.clone());
         for job in &role.jobs {
+            debug!("load job {}", job.name);
             let mut vars = Vars::new();
             vars.extend(global.clone());
             vars.extend(job.vars.clone());
-            let mut hosts = HashMap::new();
+            let mut hosts = BTreeMap::new();
             for group in &job.groups {
+                debug!("load group {}@{}", group, job.name);
                 hosts.extend(Group::load(inventory, group, vars.clone())?);
             }
             for host in &job.hosts {
+                debug!("load host {}@{}", host, job.name);
                 hosts.insert(host.to_string(), Host::load(inventory, host, vars.clone())?);
             }
 
@@ -137,12 +140,11 @@ pub struct Group {
 }
 
 impl Group {
-    pub fn load(inventory: &str, name: &str, parent: Vars) -> Result<HashMap<String, Vars>> {
-        let mut items = HashMap::new();
+    pub fn load(inventory: &str, name: &str, parent: Vars) -> Result<BTreeMap<String, Vars>> {
+        let mut items = BTreeMap::new();
 
         let mut vars = Vars::new();
         vars.extend(parent);
-        load_host_vars!(inventory, ALL, vars);
 
         let file = Path::new(inventory)
             .join("groups")
@@ -151,11 +153,12 @@ impl Group {
         debug!("load vars from {}", file.display());
         let group: Self = parse(file)?;
         vars.extend(group.vars);
+        load_host_vars!(inventory, ALL, vars);
 
         for host in &group.hosts {
             let mut cur = Vars::new();
             cur.extend(vars.clone());
-            load_host_vars!(inventory, name, cur);
+            load_host_vars!(inventory, host, cur);
             items.insert(host.to_string(), cur);
         }
         Ok(items)
@@ -176,7 +179,7 @@ impl Host {
     }
 
     pub fn handle(hostname: &str, vars: &Vars, tasks: &[Task]) -> Result<()> {
-        debug!("host {}:\n{:?}", hostname, vars);
+        debug!("host env {}:\n{:?}", hostname, vars);
         if hostname == "localhost" || hostname == "127.0.0.1" {
             let host = Local;
             for task in tasks {
