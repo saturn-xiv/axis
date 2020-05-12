@@ -6,6 +6,8 @@ extern crate log;
 extern crate failure;
 #[macro_use]
 extern crate lazy_static;
+#[macro_use]
+extern crate diesel;
 
 extern crate chrono;
 extern crate clap;
@@ -19,6 +21,7 @@ pub mod app;
 pub mod env;
 pub mod errors;
 pub mod models;
+pub mod orm;
 pub mod shell;
 
 use std::path::{Path, PathBuf};

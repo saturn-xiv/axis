@@ -58,7 +58,7 @@ mode = '640'
 
 [[jobs.tasks]]
 type = 'shell'
-script = 'lspci'
+script = 'uptime'
 
 [jobs.vars]
 "job 2 key 1" = 'job 2 val 1'

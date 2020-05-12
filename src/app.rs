@@ -9,6 +9,7 @@ use super::{
     env,
     errors::Result,
     models::{Host, Role},
+    orm,
 };
 
 pub fn run() -> Result<()> {
@@ -41,6 +42,7 @@ pub fn run() -> Result<()> {
     let inventory = matches.value_of("inventory").unwrap();
     let role = matches.value_of("role").unwrap();
 
+    let db = orm::open()?;
     let reason = Arc::new(Mutex::new(None::<Error>));
 
     let jobs = Role::load(inventory, role)?;
