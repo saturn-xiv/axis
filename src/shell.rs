@@ -80,14 +80,11 @@ impl Ssh {
 impl Command for Ssh {
     fn script(&self, user: Option<String>, command: &str) -> Result<()> {
         let mut channel = self.session.channel_session()?;
-        channel.exec(&format!(
-            "su -c \"{}\"{}",
-            command,
-            match user {
-                Some(v) => format!(" - {}", v),
-                None => "".to_string(),
-            }
-        ))?;
+        let command = match user {
+            Some(u) => format!("sudo -u {} -s {}", u, command),
+            None => format!("sh -c \"{}\"", command),
+        };
+        channel.exec(&command)?;
 
         let mut buf = String::new();
         channel.read_to_string(&mut buf)?;
@@ -98,9 +95,10 @@ impl Command for Ssh {
             return Ok(());
         }
         Err(format_err!(
-            "shell script return {}:\n{}",
+            "shell script {} return {}:\n{}",
             self.name,
-            status
+            status,
+            buf
         ))
     }
     fn upload<P: AsRef<Path>, Q: AsRef<Path>>(&self, from: P, to: Q) -> Result<()> {
@@ -112,7 +110,7 @@ impl Command for Ssh {
         }
         let mut to = self
             .session
-            .scp_send(to.as_ref(), 0o400, f_mt.len(), None)?;
+            .scp_send(to.as_ref(), 0o600, f_mt.len(), None)?;
         let mut from = BufReader::new(f_fd);
 
         let mut buf = [0; 1 << 10];
@@ -157,11 +155,11 @@ pub struct Local;
 impl Command for Local {
     fn script(&self, user: Option<String>, command: &str) -> Result<()> {
         let out = match user {
-            Some(u) => ShellCommand::new("sh")
-                .arg("-c")
-                .arg(command)
-                .arg("-")
+            Some(u) => ShellCommand::new("sudo")
+                .arg("-u")
                 .arg(u)
+                .arg("-s")
+                .arg(command)
                 .output()?,
             None => ShellCommand::new("sh").arg("-c").arg(command).output()?,
         };

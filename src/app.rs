@@ -1,13 +1,14 @@
-use std::collections::BTreeMap;
+use std::ops::Deref;
 use std::sync::{Arc, Mutex};
 use std::thread;
 
 use clap::{App, Arg};
+use failure::Error;
 
 use super::{
     env,
     errors::Result,
-    models::{Host, Report, Role},
+    models::{Host, Role},
 };
 
 pub fn run() -> Result<()> {
@@ -40,49 +41,45 @@ pub fn run() -> Result<()> {
     let inventory = matches.value_of("inventory").unwrap();
     let role = matches.value_of("role").unwrap();
 
-    let status: BTreeMap<String, Report> = BTreeMap::new();
-    let status = Arc::new(Mutex::new(status));
+    let reason = Arc::new(Mutex::new(None::<Error>));
 
     let jobs = Role::load(inventory, role)?;
     for (job, hosts, tasks) in jobs {
+        {
+            let reason = reason.lock();
+            if let Ok(ref reason) = reason {
+                if let Some(ref e) = reason.deref() {
+                    return Err(format_err!("{}", e));
+                }
+            }
+        }
+        info!("get job {}", job);
         let mut children = vec![];
 
         for (host, vars) in hosts {
-            let status = status.clone();
-            if let Ok(status) = status.lock() {
-                if let Some(it) = status.get(&host) {
-                    if let Some(e) = &it.reason {
-                        return Err(format_err!("host {} {}", host, e));
-                    }
-                }
-            }
             let job = job.clone();
             let host = host.clone();
             let vars = vars.clone();
             let tasks = tasks.clone();
-            children.push(thread::spawn(move || {
-                let reason = match Host::handle(&host, &vars, &tasks) {
-                    Ok(()) => None,
-                    Err(e) => {
-                        error!("{} {:?}", host, e);
-                        Some(e)
-                    }
-                };
-                if let Ok(ref mut status) = status.lock() {
-                    status.insert(host.clone(), Report::new(job.clone(), reason));
-                }
-            }));
+            let reason = reason.clone();
+            children.push(
+                thread::Builder::new()
+                    .name(format!("{} - {}", host, job))
+                    .spawn(move || {
+                        let reason = reason.clone();
+                        if let Err(e) = Host::handle(&host, &vars, &tasks) {
+                            if let Ok(mut reason) = reason.lock() {
+                                *reason = Some(e);
+                            }
+                        }
+                    })?,
+            );
         }
         for it in children {
             let _ = it.join();
         }
     }
 
-    println!("{:16} REPORT", "HOST");
-    if let Ok(status) = status.lock() {
-        for (h, r) in status.iter() {
-            println!("{:16} {}", h, r);
-        }
-    }
+    info!("Done.");
     Ok(())
 }

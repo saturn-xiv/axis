@@ -16,13 +16,15 @@ hosts = [
 
 [[jobs.tasks]]
 type = 'upload'
-remote = '/tmp/hello'
+remote = '/tmp/job1'
 local = 'packages/hi'
+mode = '640'
 
 [[jobs.tasks]]
 type = 'download'
 remote = '/etc/os-release'
-local = 'down'
+local = 'job1'
+mode = '640'
 
 [[jobs.tasks]]
 type = 'shell'
@@ -44,17 +46,19 @@ hosts = [
 
 [[jobs.tasks]]
 type = 'upload'
-remote = '/tmp/hello'
+remote = '/tmp/job2'
 local = 'packages/hi'
+mode = '640'
 
 [[jobs.tasks]]
 type = 'download'
 remote = '/etc/os-release'
-local = 'down'
+local = 'job2'
+mode = '640'
 
 [[jobs.tasks]]
 type = 'shell'
-script = 'uname -a'
+script = 'lspci'
 
 [jobs.vars]
 "job 2 key 1" = 'job 2 val 1'
@@ -67,22 +71,26 @@ groups = [
     'web',
 ]
 hosts = [
-    '192.168.8.21'
+    '192.168.8.21',
+    'localhost'
 ]
 
 [[jobs.tasks]]
 type = 'upload'
-remote = '/tmp/hello'
+remote = '/tmp/job3'
 local = 'packages/hi'
+mode = '640'
 
 [[jobs.tasks]]
 type = 'download'
 remote = '/etc/os-release'
-local = 'down'
+local = 'job3'
+mode = '640'
 
 [[jobs.tasks]]
 type = 'shell'
-script = 'uname -a'
+script = 'lsusb'
+user = 'root'
 
 [jobs.vars]
 "job 3 key 1" = 'job 3 val 1'

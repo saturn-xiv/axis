@@ -4,8 +4,7 @@ use std::fs::{create_dir_all, File};
 use std::io::prelude::*;
 use std::path::{Path, PathBuf};
 
-use chrono::{NaiveDateTime, Utc};
-use failure::Error;
+use chrono::Utc;
 use handlebars::Handlebars;
 use rand::{distributions::Alphanumeric, thread_rng, Rng};
 use serde::de::DeserializeOwned;
@@ -32,40 +31,6 @@ macro_rules! load_host_vars {
             $v.extend(cur);
         }
     };
-}
-
-#[derive(Debug)]
-pub struct Report {
-    pub job: String,
-    pub updated: NaiveDateTime,
-    pub reason: Option<Error>,
-}
-
-impl Report {
-    pub fn new(job: String, reason: Option<Error>) -> Self {
-        Self {
-            job,
-            reason,
-            updated: Utc::now().naive_local(),
-        }
-    }
-}
-
-impl fmt::Display for Report {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(
-            f,
-            "{} {}\t{}",
-            self.updated.format("%c"),
-            self.job,
-            match &self.reason {
-                Some(e) => {
-                    e.to_string()
-                }
-                None => "Done.".to_string(),
-            }
-        )
-    }
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -388,7 +353,7 @@ impl fmt::Display for Task {
             ),
             Self::Shell { script, user } => write!(
                 f,
-                "run shell script {}{}",
+                "run shell script {:?}{}",
                 script,
                 match user {
                     Some(v) => format!(" as user {}", v),
