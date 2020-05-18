@@ -18,6 +18,7 @@ extern crate toml;
 extern crate uuid;
 
 pub mod app;
+pub mod controllers;
 pub mod env;
 pub mod errors;
 pub mod models;

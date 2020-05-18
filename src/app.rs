@@ -20,29 +20,22 @@ pub fn run() -> Result<()> {
         .before_help(env::BANNER)
         .after_help(env::HOMEPAGE)
         .arg(
-            Arg::with_name("inventory")
-                .short("i")
-                .long("inventory")
-                .value_name("INVENTORY")
-                .help("Inventory name")
-                .takes_value(true)
-                .required(true),
-        )
-        .arg(
-            Arg::with_name("role")
-                .short("r")
-                .long("role")
-                .value_name("ROLE")
-                .help("Role name")
-                .takes_value(true)
-                .required(true),
+            Arg::with_name("port")
+                .short("p")
+                .long("port")
+                .value_name("PORT")
+                .help("Http listening port")
+                .takes_value(true),
         )
         .get_matches();
 
-    let inventory = matches.value_of("inventory").unwrap();
-    let role = matches.value_of("role").unwrap();
+    let port: u16 = matches.value_of("port").unwrap_or("8080").parse()?;
 
     let db = orm::open()?;
+    Ok(())
+}
+
+fn run_task(inventory: &str, role: &str) -> Result<()> {
     let reason = Arc::new(Mutex::new(None::<Error>));
 
     let jobs = Role::load(inventory, role)?;
