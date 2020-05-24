@@ -1,3 +1,0 @@
-hello = "Hello, 192.168.8.20"
-ssh_user = "deploy"
-ssh_password = "123456"

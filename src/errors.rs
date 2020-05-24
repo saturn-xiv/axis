@@ -12,7 +12,4 @@ pub enum Error {
     Utf8(#[fail(cause)] std::str::Utf8Error),
     #[fail(display = "{}", _0)]
     NetAddrParse(#[fail(cause)] std::net::AddrParseError),
-
-    #[fail(display = "{}", _0)]
-    Ssh2(#[fail(cause)] ssh2::Error),
 }

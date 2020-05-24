@@ -1,9 +1,0 @@
-hosts = [
-    "192.168.8.21",
-    "192.168.8.22"
-]
-
-[vars] 
-"web group key 1" = "web group val 1"
-"web group key 2" = "web group val 2"
-"web group key 3" = "web group val 3"

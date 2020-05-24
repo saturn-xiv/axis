@@ -5,12 +5,7 @@ use std::thread;
 use clap::{App, Arg};
 use failure::Error;
 
-use super::{
-    env,
-    errors::Result,
-    models::{Host, Role},
-    orm,
-};
+use super::{env, errors::Result, models::Job};
 
 pub fn run() -> Result<()> {
     let matches = App::new(env::NAME)
@@ -20,26 +15,22 @@ pub fn run() -> Result<()> {
         .before_help(env::BANNER)
         .after_help(env::HOMEPAGE)
         .arg(
-            Arg::with_name("port")
-                .short("p")
-                .long("port")
-                .value_name("PORT")
-                .help("Http listening port")
+            Arg::with_name("job")
+                .short("j")
+                .long("job")
+                .value_name("JOB")
+                .help("Job name")
                 .takes_value(true),
         )
         .get_matches();
 
-    let port: u16 = matches.value_of("port").unwrap_or("8080").parse()?;
-
-    let db = orm::open()?;
-    Ok(())
-}
-
-fn run_task(inventory: &str, role: &str) -> Result<()> {
+    let name = matches
+        .value_of("job")
+        .ok_or_else(|| format_err!("please give a job name"))?;
     let reason = Arc::new(Mutex::new(None::<Error>));
 
-    let jobs = Role::load(inventory, role)?;
-    for (job, hosts, tasks) in jobs {
+    let excutors = Job::load(name)?;
+    for (hosts, tasks) in excutors {
         {
             let reason = reason.lock();
             if let Ok(ref reason) = reason {
@@ -48,23 +39,24 @@ fn run_task(inventory: &str, role: &str) -> Result<()> {
                 }
             }
         }
-        info!("get job {}", job);
         let mut children = vec![];
 
         for (host, vars) in hosts {
-            let job = job.clone();
             let host = host.clone();
             let vars = vars.clone();
             let tasks = tasks.clone();
             let reason = reason.clone();
             children.push(
                 thread::Builder::new()
-                    .name(format!("{} - {}", host, job))
+                    .name(format!("{} - {}", host, name))
                     .spawn(move || {
                         let reason = reason.clone();
-                        if let Err(e) = Host::handle(&host, &vars, &tasks) {
-                            if let Ok(mut reason) = reason.lock() {
-                                *reason = Some(e);
+                        for task in tasks {
+                            if let Err(e) = task.run(&host, &vars) {
+                                if let Ok(mut reason) = reason.lock() {
+                                    *reason = Some(e);
+                                }
+                                return;
                             }
                         }
                     })?,

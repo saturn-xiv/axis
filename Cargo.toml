@@ -14,18 +14,13 @@ lto = true
 [dependencies]
 failure = "0.1"
 log = "0.4"
-toml = "0.4"
+toml = "0.5"
 env_logger = "0.7"
 rand = "0.7"
-ssh2 = "0.8"
-askama = "0.9"
 serde = "1"
 serde_derive = "1"
 lazy_static = "1"
-actix-rt = "1"
-actix-web = "2"
 clap = "2"
-dirs = "2"
 handlebars = "3"
 
 [dependencies.chrono]
@@ -36,7 +31,3 @@ features = ["serde"]
 version = "0.8"
 features = ["v4", "serde"]
 default-features = false
-
-[dependencies.diesel]
-version = "1"
-features = ["chrono", "sqlite", "r2d2"]
