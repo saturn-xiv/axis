@@ -19,17 +19,29 @@ pub fn run() -> Result<()> {
                 .short("j")
                 .long("job")
                 .value_name("JOB")
-                .help("Job name")
+                .help("Job")
+                .takes_value(true),
+        )
+        .arg(
+            Arg::with_name("inventory")
+                .short("i")
+                .long("inventory")
+                .value_name("INVENTORY")
+                .help("Inventory")
                 .takes_value(true),
         )
         .get_matches();
 
-    let name = matches
+    let job = matches
         .value_of("job")
         .ok_or_else(|| format_err!("please give a job name"))?;
+
+    let inventory = matches
+        .value_of("job")
+        .ok_or_else(|| format_err!("please give a inventory name"))?;
     let reason = Arc::new(Mutex::new(None::<Error>));
 
-    let excutors = Job::load(name)?;
+    let excutors = Job::load(job, inventory)?;
     for (hosts, tasks) in excutors {
         {
             let reason = reason.lock();
@@ -48,10 +60,11 @@ pub fn run() -> Result<()> {
             let reason = reason.clone();
             children.push(
                 thread::Builder::new()
-                    .name(format!("{} - {}", host, name))
+                    .name(format!("{}-{}-{}", host, job, inventory))
                     .spawn(move || {
                         let reason = reason.clone();
                         for task in tasks {
+                            info!("run {} on {}", task, host);
                             if let Err(e) = task.run(&host, &vars) {
                                 if let Ok(mut reason) = reason.lock() {
                                     *reason = Some(e);

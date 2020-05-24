@@ -10,8 +10,12 @@ fn generate() {
     println!(
         "{}",
         toml::to_string_pretty(&Group {
-            hosts: vec!["host 1".to_string(), "host 2".to_string()],
-            vars: vars,
+            hosts: vec![
+                "host 1".to_string(),
+                "host 2".to_string(),
+                "host 3".to_string(),
+            ],
+            vars
         })
         .unwrap()
     )
