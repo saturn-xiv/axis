@@ -1,8 +1,9 @@
 use std::collections::BTreeMap;
 use std::fmt;
-use std::fs::{create_dir_all, File};
-use std::io::prelude::*;
+use std::fs::{create_dir_all, File, OpenOptions};
+use std::io::{prelude::*, BufWriter};
 use std::path::{Path, PathBuf};
+use std::process::{Command as ShellCommand, Stdio};
 
 use chrono::Utc;
 use handlebars::Handlebars;
@@ -21,7 +22,7 @@ pub type Host = (String, Vars);
 
 macro_rules! load_vars {
     ($i:expr, $n:expr, $v:expr) => {
-        let file = $i.join($n).with_extension(CONFIG_EXT);
+        let file = $i.join(&format!("{}.{}", $n, CONFIG_EXT));
         if file.exists() {
             debug!("load vars from {}", file.display());
             let cur: Vars = parse(file)?;
@@ -139,48 +140,74 @@ impl Command {
             Some(v) => v.parse()?,
             None => 22,
         };
+        let key: String = match vars.get("ssh.key-file") {
+            Some(v) => v.clone(),
+            None => "~/.ssh/id_rsa".to_string(),
+        };
         match self {
             Self::Upload { src, dest } => {
-                let src = template(src, vars)?.display().to_string();
+                let src = template(src, vars)?;
                 if host == Self::LOCALHOST {
-                    shell(&format!("cp -a {src} {dest}", src = src, dest = dest))?;
+                    shell(
+                        host,
+                        &format!("rsync -av {src} {dest}", src = src.display(), dest = dest),
+                    )?;
                 } else {
-                    shell(&format!(
-                        "rsync -azv -e 'ssh -p {port}' {src} {user}@{host}:{dest}",
-                        src = src,
-                        dest = dest,
-                        user = user,
-                        host = host,
-                        port = port,
-                    ))?;
+                    shell(
+                        host,
+                        &format!(
+                            "rsync -azv -e 'ssh -p {port} -i {key}' {src} {user}@{host}:{dest}",
+                            src = src.display(),
+                            dest = dest,
+                            user = user,
+                            key = key,
+                            host = host,
+                            port = port,
+                        ),
+                    )?;
                 }
             }
             Self::Download { src, dest } => {
+                let dest = Path::new("tmp").join("downloads").join(host).join(dest);
                 if host == Self::LOCALHOST {
-                    shell(&format!("cp -a {src} {dest}", src = src, dest = dest))?;
+                    shell(
+                        host,
+                        &format!("rsync -av {src} {dest}", src = src, dest = dest.display()),
+                    )?;
                 } else {
-                    shell(&format!(
-                        "rsync -azv -e 'ssh -p {port}' {user}@{host}:{src} {dest}",
-                        src = src,
-                        dest = dest,
-                        user = user,
-                        host = host,
-                        port = port,
-                    ))?;
+                    shell(
+                        host,
+                        &format!(
+                            "rsync -azv -e 'ssh -p {port} -i {key}' {user}@{host}:{src} {dest}",
+                            src = src,
+                            dest = dest.display(),
+                            user = user,
+                            key = key,
+                            host = host,
+                            port = port,
+                        ),
+                    )?;
                 }
             }
             Self::Shell { script } => {
-                let script = template(script, vars)?.display().to_string();
+                let script = template(script, vars)?;
                 if host == Self::LOCALHOST {
-                    shell(&script)?;
+                    shell(
+                        host,
+                        &format!("bash -s < {script}", script = script.display()),
+                    )?;
                 } else {
-                    shell(&format!(
-                        "ssh -p {port} {user}@{host} 'bash -s' < {script}",
-                        user = user,
-                        host = host,
-                        port = port,
-                        script = script
-                    ))?;
+                    shell(
+                        host,
+                        &format!(
+                            "ssh -p {port} -i {key} {user}@{host} 'bash -s' < {script}",
+                            user = user,
+                            key = key,
+                            host = host,
+                            port = port,
+                            script = script.display()
+                        ),
+                    )?;
                 }
             }
         };
@@ -199,6 +226,8 @@ impl fmt::Display for Command {
 }
 
 fn parse<P: AsRef<Path>, T: DeserializeOwned>(file: P) -> Result<T> {
+    let file = file.as_ref();
+    debug!("load file {}", file.display());
     let mut file = File::open(file)?;
     let mut buf = Vec::new();
     file.read_to_end(&mut buf)?;
@@ -206,12 +235,32 @@ fn parse<P: AsRef<Path>, T: DeserializeOwned>(file: P) -> Result<T> {
     Ok(it)
 }
 
-fn shell(script: &str) -> Result<()> {
-    debug!("local run {}", script);
+fn shell(host: &str, script: &str) -> Result<()> {
+    info!("actually command: {}", script);
+    let root = Path::new("tmp").join("logs");
+    if !root.exists() {
+        create_dir_all(&root)?;
+    }
+    let outputs = OpenOptions::new()
+        .create(true)
+        .write(true)
+        .append(true)
+        .open(root.join(host).with_extension("log"))?;
+    {
+        let mut wrt = BufWriter::new(&outputs);
+        writeln!(wrt, "{}: {}", Utc::now().naive_local(), script)?;
+    }
+    let errors = outputs.try_clone()?;
+
+    ShellCommand::new(script)
+        .stdout(Stdio::from(outputs))
+        .stderr(Stdio::from(errors))
+        .spawn()?
+        .wait_with_output()?;
     Ok(())
 }
 
-fn template<P: AsRef<Path>>(tpl: P, var: &Vars) -> Result<PathBuf> {
+fn template<P: AsRef<Path>>(tpl: P, vars: &Vars) -> Result<PathBuf> {
     let tpl = tpl.as_ref();
     if tpl.exists() {
         return Ok(tpl.to_path_buf());
@@ -223,13 +272,13 @@ fn template<P: AsRef<Path>>(tpl: P, var: &Vars) -> Result<PathBuf> {
     }
     let rdr = root.join(Uuid::new_v4().to_string());
     {
-        info!("render {} to {}", tpl.display(), rdr.display());
+        debug!("render {} to {}: {:?}", tpl.display(), rdr.display(), vars);
         let rdr = File::create(&rdr)?;
         let name = tpl.display().to_string();
         let mut reg = Handlebars::new();
         reg.set_strict_mode(true);
         reg.register_template_file(&name, tpl)?;
-        reg.render_to_write(&name, var, &rdr)?;
+        reg.render_to_write(&name, vars, &rdr)?;
     }
     Ok(rdr)
 }

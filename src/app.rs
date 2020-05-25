@@ -37,7 +37,7 @@ pub fn run() -> Result<()> {
         .ok_or_else(|| format_err!("please give a job name"))?;
 
     let inventory = matches
-        .value_of("job")
+        .value_of("inventory")
         .ok_or_else(|| format_err!("please give a inventory name"))?;
     let reason = Arc::new(Mutex::new(None::<Error>));
 

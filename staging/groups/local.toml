@@ -1,0 +1,6 @@
+hosts=[
+    "localhost",
+]
+
+[vars]
+"group.name" = "Local"
