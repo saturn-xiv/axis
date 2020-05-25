@@ -144,69 +144,100 @@ impl Command {
             Some(v) => v.clone(),
             None => "~/.ssh/id_rsa".to_string(),
         };
+
+        let ssh = format!(
+            "ssh -o StrictHostKeyChecking=no -p {port} -i {key}",
+            port = port,
+            key = key
+        );
         match self {
             Self::Upload { src, dest } => {
-                let src = template(src, vars)?;
+                let src = template(src, vars)?.display().to_string();
                 if host == Self::LOCALHOST {
                     shell(
                         host,
-                        &format!("rsync -av {src} {dest}", src = src.display(), dest = dest),
+                        ShellCommand::new("rsync")
+                            .arg("-a")
+                            .arg("-v")
+                            .arg(src)
+                            .arg(dest),
                     )?;
                 } else {
                     shell(
                         host,
-                        &format!(
-                            "rsync -azv -e 'ssh -p {port} -i {key}' {src} {user}@{host}:{dest}",
-                            src = src.display(),
-                            dest = dest,
-                            user = user,
-                            key = key,
-                            host = host,
-                            port = port,
-                        ),
+                        ShellCommand::new("rsync")
+                            .arg("-a")
+                            .arg("-zz")
+                            .arg("-v")
+                            .arg("-e")
+                            .arg(ssh)
+                            .arg(src)
+                            .arg(format!(
+                                "{user}@{host}:{dest}",
+                                user = user,
+                                host = host,
+                                dest = dest,
+                            )),
                     )?;
                 }
             }
             Self::Download { src, dest } => {
-                let dest = Path::new("tmp").join("downloads").join(host).join(dest);
+                let dest = {
+                    let it = Path::new("tmp").join("downloads").join(host).join(dest);
+                    {
+                        if let Some(it) = it.parent() {
+                            if !it.exists() {
+                                create_dir_all(it)?;
+                            }
+                        }
+                    }
+                    it.display().to_string()
+                };
                 if host == Self::LOCALHOST {
                     shell(
                         host,
-                        &format!("rsync -av {src} {dest}", src = src, dest = dest.display()),
+                        ShellCommand::new("rsync")
+                            .arg("-a")
+                            .arg("-v")
+                            .arg(src)
+                            .arg(dest),
                     )?;
                 } else {
                     shell(
                         host,
-                        &format!(
-                            "rsync -azv -e 'ssh -p {port} -i {key}' {user}@{host}:{src} {dest}",
-                            src = src,
-                            dest = dest.display(),
-                            user = user,
-                            key = key,
-                            host = host,
-                            port = port,
-                        ),
+                        ShellCommand::new("rsync")
+                            .arg("-a")
+                            .arg("-zz")
+                            .arg("-v")
+                            .arg("-e")
+                            .arg(ssh)
+                            .arg(format!(
+                                "{user}@{host}:{src}",
+                                src = src,
+                                user = user,
+                                host = host,
+                            ))
+                            .arg(dest),
                     )?;
                 }
             }
             Self::Shell { script } => {
-                let script = template(script, vars)?;
+                let script = template(script, vars)?.display().to_string();
                 if host == Self::LOCALHOST {
-                    shell(
-                        host,
-                        &format!("bash -s < {script}", script = script.display()),
-                    )?;
+                    shell(host, ShellCommand::new("bash").arg(script))?;
                 } else {
                     shell(
                         host,
-                        &format!(
-                            "ssh -p {port} -i {key} {user}@{host} 'bash -s' < {script}",
-                            user = user,
-                            key = key,
-                            host = host,
-                            port = port,
-                            script = script.display()
-                        ),
+                        ShellCommand::new("ssh")
+                            .arg("-o")
+                            .arg("StrictHostKeyChecking=no")
+                            .arg("-p")
+                            .arg(port.to_string())
+                            .arg("-i")
+                            .arg(key)
+                            .arg(format!("{}@{}", user, host))
+                            .arg("bash -s")
+                            .stdin(Stdio::from(File::open(script)?)),
                     )?;
                 }
             }
@@ -235,8 +266,7 @@ fn parse<P: AsRef<Path>, T: DeserializeOwned>(file: P) -> Result<T> {
     Ok(it)
 }
 
-fn shell(host: &str, script: &str) -> Result<()> {
-    info!("actually command: {}", script);
+fn shell(host: &str, cmd: &mut ShellCommand) -> Result<()> {
     let root = Path::new("tmp").join("logs");
     if !root.exists() {
         create_dir_all(&root)?;
@@ -245,18 +275,21 @@ fn shell(host: &str, script: &str) -> Result<()> {
         .create(true)
         .write(true)
         .append(true)
-        .open(root.join(host).with_extension("log"))?;
+        .open(root.join(host))?;
     {
         let mut wrt = BufWriter::new(&outputs);
-        writeln!(wrt, "{}: {}", Utc::now().naive_local(), script)?;
+        writeln!(wrt, "{}: {:?}", Utc::now().naive_local(), cmd)?;
     }
     let errors = outputs.try_clone()?;
 
-    ShellCommand::new(script)
+    let out = cmd
         .stdout(Stdio::from(outputs))
         .stderr(Stdio::from(errors))
         .spawn()?
         .wait_with_output()?;
+    if !out.status.success() {
+        return Err(format_err!("{:?}", cmd));
+    }
     Ok(())
 }
 
