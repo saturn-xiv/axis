@@ -80,6 +80,9 @@ impl Job {
         info!("load job {}@{}", name, inventory);
         let job = {
             let mut it: Self = parse(&Path::new("jobs").join(name).with_extension(CONFIG_EXT))?;
+            it.vars.insert("job.name".to_string(), name.to_string());
+            it.vars
+                .insert("inventory.name".to_string(), inventory.to_string());
             it.vars.insert(
                 "timestamp".to_string(),
                 Utc::now().format("%y%m%d%H%M%S%3f").to_string(),
