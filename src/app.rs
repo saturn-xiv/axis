@@ -77,6 +77,7 @@ pub fn run() -> Result<()> {
             );
         }
         for it in children {
+            info!("waiting for thread {:?}", it);
             let _ = it.join();
         }
     }
