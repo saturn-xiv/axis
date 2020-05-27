@@ -58,6 +58,7 @@ pub fn run() -> Result<()> {
             let vars = vars.clone();
             let tasks = tasks.clone();
             let reason = reason.clone();
+            let inventory = inventory.to_string();
             children.push(
                 thread::Builder::new()
                     .name(format!("{}-{}-{}", host, job, inventory))
@@ -65,7 +66,7 @@ pub fn run() -> Result<()> {
                         let reason = reason.clone();
                         for task in tasks {
                             info!("run {} on {}", task, host);
-                            if let Err(e) = task.run(&host, &vars) {
+                            if let Err(e) = task.run(&inventory, &host, &vars) {
                                 if let Ok(mut reason) = reason.lock() {
                                     *reason = Some(e);
                                 }

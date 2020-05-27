@@ -89,6 +89,7 @@ impl Job {
             );
             it.vars
                 .insert("uuid".to_string(), Uuid::new_v4().to_string());
+            load_vars!(Path::new(inventory), "all", it.vars);
             {
                 let mut rng = thread_rng();
                 it.vars.insert(
@@ -133,7 +134,7 @@ pub enum Command {
 
 impl Command {
     const LOCALHOST: &'static str = "localhost";
-    pub fn run(&self, host: &str, vars: &Vars) -> Result<()> {
+    pub fn run(&self, inventory: &str, host: &str, vars: &Vars) -> Result<()> {
         debug!("host {} env: {:?}", host, vars);
         let user = match vars.get("ssh.user") {
             Some(v) => v.clone(),
@@ -145,7 +146,14 @@ impl Command {
         };
         let key: String = match vars.get("ssh.key-file") {
             Some(v) => v.clone(),
-            None => "~/.ssh/id_rsa".to_string(),
+            None => {
+                let key = Path::new(inventory).join("id_rsa");
+                if key.exists() {
+                    key.display().to_string()
+                } else {
+                    "~/.ssh/id_rsa".to_string()
+                }
+            }
         };
 
         let ssh = format!(
