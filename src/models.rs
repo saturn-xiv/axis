@@ -108,6 +108,7 @@ impl Job {
             for group in task.groups.iter() {
                 let mut vars = Vars::new();
                 vars.extend(job.vars.clone());
+                vars.extend(task.vars.clone());
                 let hosts = Group::load(group, inventory, vars)?;
                 excutors.push((hosts, task.commands.clone()));
             }
@@ -122,6 +123,7 @@ pub struct Task {
     pub name: String,
     pub groups: Vec<String>,
     pub commands: Vec<Command>,
+    pub vars: Vars,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]

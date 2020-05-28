@@ -21,3 +21,7 @@ dest = 'proc/version'
 [[tasks.commands]]
 type = 'shell'
 script = 'jobs/scripts/hi.sh'
+
+[[tasks.vars]]
+"task key 1" = "task val 1"
+"task key 2" = "task val "

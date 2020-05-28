@@ -7,6 +7,11 @@ fn generate() {
     vars.insert("global key 2".to_string(), "global val 2".to_string());
     vars.insert("global key 3".to_string(), "global val 3".to_string());
 
+    let mut tvr = Vars::new();
+    tvr.insert("task key 1".to_string(), "task val 1".to_string());
+    tvr.insert("task key 2".to_string(), "task val 2".to_string());
+    tvr.insert("task key 3".to_string(), "task val 3".to_string());
+
     let groups = vec![
         "group 1".to_string(),
         "group 2".to_string(),
@@ -32,17 +37,20 @@ fn generate() {
                 Task {
                     name: "task 1".to_string(),
                     groups: groups.clone(),
-                    commands: commands.clone()
+                    commands: commands.clone(),
+                    vars: tvr.clone()
                 },
                 Task {
                     name: "task 2".to_string(),
                     groups: groups.clone(),
-                    commands: commands.clone()
+                    commands: commands.clone(),
+                    vars: tvr.clone()
                 },
                 Task {
                     name: "task 3".to_string(),
                     groups: groups.clone(),
-                    commands: commands.clone()
+                    commands: commands.clone(),
+                    vars: tvr.clone()
                 }
             ],
             vars
