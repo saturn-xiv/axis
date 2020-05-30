@@ -184,7 +184,7 @@ impl Command {
         );
         match self {
             Self::Upload { src, dest } => {
-                let src = template(src, vars)?.display().to_string();
+                let src = template(inventory, src, vars)?.display().to_string();
                 if host == Self::LOCALHOST {
                     shell(
                         host,
@@ -254,7 +254,7 @@ impl Command {
                 }
             }
             Self::Shell { script } => {
-                let script = template(script, vars)?.display().to_string();
+                let script = template(inventory, script, vars)?.display().to_string();
                 if host == Self::LOCALHOST {
                     shell(host, ShellCommand::new("bash").arg(script))?;
                 } else {
@@ -325,8 +325,14 @@ fn shell(host: &str, cmd: &mut ShellCommand) -> Result<()> {
     Ok(())
 }
 
-fn template<P: AsRef<Path>>(tpl: P, vars: &Vars) -> Result<PathBuf> {
+fn template<P: AsRef<Path>>(inventory: &str, tpl: P, vars: &Vars) -> Result<PathBuf> {
     let tpl = tpl.as_ref();
+    {
+        let tpl = Path::new(inventory).join(tpl);
+        if tpl.exists() {
+            return Ok(tpl.to_path_buf());
+        }
+    }
     if tpl.exists() {
         return Ok(tpl.to_path_buf());
     }
