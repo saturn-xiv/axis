@@ -1,7 +1,7 @@
 use std::collections::BTreeMap;
 use std::fmt;
 use std::fs::{create_dir_all, File, OpenOptions};
-use std::io::{prelude::*, BufWriter};
+use std::io::{prelude::*, BufReader, BufWriter};
 use std::path::{Path, PathBuf};
 use std::process::{Command as ShellCommand, Stdio};
 
@@ -76,6 +76,22 @@ pub struct Job {
 }
 
 impl Job {
+    fn git_version() -> Result<String> {
+        let out = ShellCommand::new("git")
+            .arg("describe")
+            .arg("--tags")
+            .arg("--always")
+            .arg("--dirty")
+            .stdout(Stdio::piped())
+            .spawn()?
+            .stdout
+            .ok_or_else(|| format_err!("could not capture standard output"))?;
+        let mut buf = String::new();
+        let mut rdr = BufReader::new(out);
+        rdr.read_to_string(&mut buf)?;
+        Ok(buf.trim().to_string())
+    }
+
     pub fn load(name: &str, inventory: &str) -> Result<Vec<Excutor>> {
         info!("load job {}@{}", name, inventory);
         let job = {
@@ -89,6 +105,9 @@ impl Job {
             );
             it.vars
                 .insert("uuid".to_string(), Uuid::new_v4().to_string());
+            if let Ok(v) = Self::git_version() {
+                it.vars.insert("git.version".to_string(), v);
+            }
             load_vars!(Path::new(inventory), "all", it.vars);
             {
                 let mut rng = thread_rng();
