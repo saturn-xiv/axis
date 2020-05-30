@@ -1,16 +1,35 @@
 use axis::models::{Command, Job, Task, Vars};
+use toml::Value;
 
 #[test]
 fn generate() {
     let mut vars = Vars::new();
-    vars.insert("global key 1".to_string(), "global val 1".to_string());
-    vars.insert("global key 2".to_string(), "global val 2".to_string());
-    vars.insert("global key 3".to_string(), "global val 3".to_string());
+    vars.insert(
+        "global key 1".to_string(),
+        Value::String("global val 1".to_string()),
+    );
+    vars.insert(
+        "global key 2".to_string(),
+        Value::String("global val 2".to_string()),
+    );
+    vars.insert(
+        "global key 3".to_string(),
+        Value::String("global val 3".to_string()),
+    );
 
     let mut tvr = Vars::new();
-    tvr.insert("task key 1".to_string(), "task val 1".to_string());
-    tvr.insert("task key 2".to_string(), "task val 2".to_string());
-    tvr.insert("task key 3".to_string(), "task val 3".to_string());
+    tvr.insert(
+        "task key 1".to_string(),
+        Value::String("task val 1".to_string()),
+    );
+    tvr.insert(
+        "task key 2".to_string(),
+        Value::String("task val 2".to_string()),
+    );
+    tvr.insert(
+        "task key 3".to_string(),
+        Value::String("task val 3".to_string()),
+    );
 
     let groups = vec![
         "group 1".to_string(),

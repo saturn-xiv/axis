@@ -9,6 +9,7 @@ use chrono::Utc;
 use handlebars::Handlebars;
 use rand::{distributions::Alphanumeric, thread_rng, Rng};
 use serde::de::DeserializeOwned;
+use toml::Value;
 use uuid::Uuid;
 
 use super::errors::Result;
@@ -16,7 +17,7 @@ use super::errors::Result;
 pub const CONFIG_EXT: &str = "toml";
 pub const TEMPLATE_EXT: &str = "hbs";
 
-pub type Vars = BTreeMap<String, String>;
+pub type Vars = BTreeMap<String, Value>;
 pub type Excutor = (Vec<Host>, Vec<Command>);
 pub type Host = (String, Vars);
 
@@ -96,28 +97,31 @@ impl Job {
         info!("load job {}@{}", name, inventory);
         let job = {
             let mut it: Self = parse(&Path::new("jobs").join(name).with_extension(CONFIG_EXT))?;
-            it.vars.insert("job.name".to_string(), name.to_string());
             it.vars
-                .insert("inventory.name".to_string(), inventory.to_string());
+                .insert("job.name".to_string(), Value::String(name.to_string()));
+            it.vars.insert(
+                "inventory.name".to_string(),
+                Value::String(inventory.to_string()),
+            );
             it.vars.insert(
                 "timestamp".to_string(),
-                Utc::now().format("%y%m%d%H%M%S%3f").to_string(),
+                Value::String(Utc::now().format("%y%m%d%H%M%S%3f").to_string()),
             );
-            it.vars
-                .insert("uuid".to_string(), Uuid::new_v4().to_string());
+            it.vars.insert(
+                "uuid".to_string(),
+                Value::String(Uuid::new_v4().to_string()),
+            );
             if let Ok(v) = Self::git_version() {
-                it.vars.insert("git.version".to_string(), v);
+                it.vars.insert("git.version".to_string(), Value::String(v));
             }
             load_vars!(Path::new(inventory), "all", it.vars);
             {
                 let mut rng = thread_rng();
-                it.vars.insert(
-                    "random".to_string(),
-                    std::iter::repeat(())
-                        .map(|()| rng.sample(Alphanumeric))
-                        .take(32)
-                        .collect(),
-                );
+                let random: String = std::iter::repeat(())
+                    .map(|()| rng.sample(Alphanumeric))
+                    .take(32)
+                    .collect();
+                it.vars.insert("random".to_string(), Value::String(random));
             }
             it
         };
@@ -155,27 +159,35 @@ pub enum Command {
 
 impl Command {
     const LOCALHOST: &'static str = "localhost";
+
+    fn parse_ssh_port(vars: &Vars) -> u16 {
+        if let Some(Value::Integer(v)) = vars.get("ssh.port") {
+            return *v as u16;
+        }
+        22
+    }
+    fn parse_ssh_key_file(inventory: &str, vars: &Vars) -> String {
+        if let Some(Value::String(v)) = vars.get("ssh.key-file") {
+            return v.clone();
+        }
+        let key = Path::new(inventory).join("id_rsa");
+        if key.exists() {
+            key.display().to_string()
+        } else {
+            "~/.ssh/id_rsa".to_string()
+        }
+    }
+    fn parse_ssh_user(vars: &Vars) -> String {
+        if let Some(Value::String(v)) = vars.get("ssh.user") {
+            return v.clone();
+        }
+        "root".to_string()
+    }
     pub fn run(&self, inventory: &str, host: &str, vars: &Vars) -> Result<()> {
         debug!("host {} env: {:?}", host, vars);
-        let user = match vars.get("ssh.user") {
-            Some(v) => v.clone(),
-            None => "root".to_string(),
-        };
-        let port: u16 = match vars.get("ssh.port") {
-            Some(v) => v.parse()?,
-            None => 22,
-        };
-        let key: String = match vars.get("ssh.key-file") {
-            Some(v) => v.clone(),
-            None => {
-                let key = Path::new(inventory).join("id_rsa");
-                if key.exists() {
-                    key.display().to_string()
-                } else {
-                    "~/.ssh/id_rsa".to_string()
-                }
-            }
-        };
+        let user = Self::parse_ssh_user(vars);
+        let port = Self::parse_ssh_port(vars);
+        let key: String = Self::parse_ssh_key_file(inventory, vars);
 
         let ssh = format!(
             "ssh -o StrictHostKeyChecking=no -p {port} -i {key}",

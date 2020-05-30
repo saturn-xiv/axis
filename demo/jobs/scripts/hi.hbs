@@ -1,5 +1,12 @@
 #!/bin/sh
 
-echo "{{ [git.version] }} - {{ hello }}"
+set -e
+
+echo "{{ [git.version] }}"
+echo {{ hello }}
+
+cat /etc/os-release
+uname -a
+ip address
 
 exit 0
