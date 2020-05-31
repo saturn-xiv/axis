@@ -10,7 +10,7 @@ groups = [
 ]
 [[tasks.commands]]
 type = 'upload'
-src = 'jobs/scripts/hi'
+src = 'scripts/hi'
 dest = '/tmp/hi.sh'
 
 [[tasks.commands]]
@@ -20,7 +20,7 @@ dest = 'proc/version'
 
 [[tasks.commands]]
 type = 'shell'
-script = 'jobs/scripts/hi.sh'
+script = 'scripts/hi.sh'
 
 [tasks.vars]
 "task key 1" = "task val 1"

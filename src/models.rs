@@ -16,6 +16,7 @@ use super::errors::Result;
 
 pub const CONFIG_EXT: &str = "toml";
 pub const TEMPLATE_EXT: &str = "hbs";
+pub const JOBS: &str = "jobs";
 
 pub type Vars = BTreeMap<String, Value>;
 pub type Excutor = (Vec<Host>, Vec<Command>);
@@ -96,7 +97,7 @@ impl Job {
     pub fn load(name: &str, inventory: &str) -> Result<Vec<Excutor>> {
         info!("load job {}@{}", name, inventory);
         let job = {
-            let mut it: Self = parse(&Path::new("jobs").join(name).with_extension(CONFIG_EXT))?;
+            let mut it: Self = parse(&Path::new(JOBS).join(name).with_extension(CONFIG_EXT))?;
             it.vars
                 .insert("job.name".to_string(), Value::String(name.to_string()));
             it.vars.insert(
@@ -196,7 +197,7 @@ impl Command {
         );
         match self {
             Self::Upload { src, dest } => {
-                let src = template(inventory, src, vars)?.display().to_string();
+                let src = template_file(inventory, src, vars)?.display().to_string();
                 let dest = template_str(dest, vars)?;
                 if host == Self::LOCALHOST {
                     shell(
@@ -269,7 +270,9 @@ impl Command {
                 }
             }
             Self::Shell { script } => {
-                let script = template(inventory, script, vars)?.display().to_string();
+                let script = template_file(inventory, script, vars)?
+                    .display()
+                    .to_string();
                 if host == Self::LOCALHOST {
                     shell(host, ShellCommand::new("bash").arg(script))?;
                 } else {
@@ -340,7 +343,7 @@ fn shell(host: &str, cmd: &mut ShellCommand) -> Result<()> {
     Ok(())
 }
 
-fn template<P: AsRef<Path>>(inventory: &str, tpl: P, vars: &Vars) -> Result<PathBuf> {
+fn template_file<P: AsRef<Path>>(inventory: &str, tpl: P, vars: &Vars) -> Result<PathBuf> {
     let tpl = tpl.as_ref();
     {
         let tpl = Path::new(inventory).join(tpl);
@@ -348,27 +351,30 @@ fn template<P: AsRef<Path>>(inventory: &str, tpl: P, vars: &Vars) -> Result<Path
             return Ok(tpl.to_path_buf());
         }
     }
-    if tpl.exists() {
-        return Ok(tpl.to_path_buf());
-    }
     {
-        let tpl = tpl.with_extension(TEMPLATE_EXT);
+        let tpl = Path::new(JOBS).join(tpl);
         if tpl.exists() {
-            let root = Path::new("tmp").join("cache");
-            if !root.exists() {
-                create_dir_all(&root)?;
+            return Ok(tpl.to_path_buf());
+        }
+        {
+            let tpl = tpl.with_extension(TEMPLATE_EXT);
+            if tpl.exists() {
+                let root = Path::new("tmp").join("cache");
+                if !root.exists() {
+                    create_dir_all(&root)?;
+                }
+                let rdr = root.join(Uuid::new_v4().to_string());
+                {
+                    debug!("render {} to {}: {:?}", tpl.display(), rdr.display(), vars);
+                    let rdr = File::create(&rdr)?;
+                    let name = tpl.display().to_string();
+                    let mut reg = Handlebars::new();
+                    reg.set_strict_mode(true);
+                    reg.register_template_file(&name, tpl)?;
+                    reg.render_to_write(&name, vars, &rdr)?;
+                }
+                return Ok(rdr);
             }
-            let rdr = root.join(Uuid::new_v4().to_string());
-            {
-                debug!("render {} to {}: {:?}", tpl.display(), rdr.display(), vars);
-                let rdr = File::create(&rdr)?;
-                let name = tpl.display().to_string();
-                let mut reg = Handlebars::new();
-                reg.set_strict_mode(true);
-                reg.register_template_file(&name, tpl)?;
-                reg.render_to_write(&name, vars, &rdr)?;
-            }
-            return Ok(rdr);
         }
     }
 
