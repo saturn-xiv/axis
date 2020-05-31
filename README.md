@@ -4,6 +4,14 @@ A open source Office-Automation solution.
 
 ## Usage
 
+- server
+
+```bash
+$ sudo apt-get install rsync openssh-server
+```
+
+- client
+
 ```bash
 $ sudo apt-get install rsync git openssh-client
 $ cargo install --git https://github.com/saturn-xiv/axis.git
