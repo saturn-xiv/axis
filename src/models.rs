@@ -202,7 +202,7 @@ impl Command {
                     shell(
                         host,
                         ShellCommand::new("rsync")
-                            .arg("-a")
+                            .arg("-rlptD")
                             .arg("-v")
                             .arg(src)
                             .arg(dest),
@@ -211,7 +211,7 @@ impl Command {
                     shell(
                         host,
                         ShellCommand::new("rsync")
-                            .arg("-a")
+                            .arg("-rlptD")
                             .arg("-zz")
                             .arg("-v")
                             .arg("-e")
@@ -244,7 +244,7 @@ impl Command {
                     shell(
                         host,
                         ShellCommand::new("rsync")
-                            .arg("-a")
+                            .arg("-rlptD")
                             .arg("-v")
                             .arg(src)
                             .arg(dest),
@@ -253,7 +253,7 @@ impl Command {
                     shell(
                         host,
                         ShellCommand::new("rsync")
-                            .arg("-a")
+                            .arg("-rlptD")
                             .arg("-zz")
                             .arg("-v")
                             .arg("-e")
