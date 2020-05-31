@@ -4,5 +4,9 @@
     "workbench.colorTheme": "One Dark Pro",
     "editor.formatOnSave": true,
     "editor.fontFamily": "source code pro",
-    "editor.mouseWheelZoom": true
+    "editor.mouseWheelZoom": true,
+    "[handlebars]": {
+        "editor.formatOnSave": false,
+        "editor.formatOnPaste": false
+    }
 }

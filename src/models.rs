@@ -2,6 +2,7 @@ use std::collections::BTreeMap;
 use std::fmt;
 use std::fs::{create_dir_all, File, OpenOptions};
 use std::io::{prelude::*, BufReader, BufWriter};
+use std::os::unix::fs::OpenOptionsExt;
 use std::path::{Path, PathBuf};
 use std::process::{Command as ShellCommand, Stdio};
 
@@ -54,6 +55,7 @@ impl Group {
                 let mut vars = Vars::new();
                 vars.extend(parent);
                 vars.extend(it.vars);
+                vars.insert("group.name".to_string(), Value::String(name.to_string()));
                 vars
             };
             it
@@ -64,6 +66,7 @@ impl Group {
             let mut vars = Vars::new();
             vars.extend(group.vars.clone());
             load_vars!(Path::new(inventory).join("hosts"), host, vars);
+            vars.insert("hostname".to_string(), Value::String(host.clone()));
             items.push((host.clone(), vars));
         }
         Ok(items)
@@ -366,7 +369,11 @@ fn template_file<P: AsRef<Path>>(inventory: &str, tpl: P, vars: &Vars) -> Result
                 let rdr = root.join(Uuid::new_v4().to_string());
                 {
                     debug!("render {} to {}: {:?}", tpl.display(), rdr.display(), vars);
-                    let rdr = File::create(&rdr)?;
+                    let rdr = OpenOptions::new()
+                        .mode(0o400)
+                        .create_new(true)
+                        .write(true)
+                        .open(&rdr)?;
                     let name = tpl.display().to_string();
                     let mut reg = Handlebars::new();
                     reg.set_strict_mode(true);
