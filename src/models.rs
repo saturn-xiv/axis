@@ -351,22 +351,29 @@ fn template<P: AsRef<Path>>(inventory: &str, tpl: P, vars: &Vars) -> Result<Path
     if tpl.exists() {
         return Ok(tpl.to_path_buf());
     }
-    let tpl = tpl.with_extension(TEMPLATE_EXT);
-    let root = Path::new("tmp").join("cache");
-    if !root.exists() {
-        create_dir_all(&root)?;
-    }
-    let rdr = root.join(Uuid::new_v4().to_string());
     {
-        debug!("render {} to {}: {:?}", tpl.display(), rdr.display(), vars);
-        let rdr = File::create(&rdr)?;
-        let name = tpl.display().to_string();
-        let mut reg = Handlebars::new();
-        reg.set_strict_mode(true);
-        reg.register_template_file(&name, tpl)?;
-        reg.render_to_write(&name, vars, &rdr)?;
+        let tpl = tpl.with_extension(TEMPLATE_EXT);
+        if tpl.exists() {
+            let root = Path::new("tmp").join("cache");
+            if !root.exists() {
+                create_dir_all(&root)?;
+            }
+            let rdr = root.join(Uuid::new_v4().to_string());
+            {
+                debug!("render {} to {}: {:?}", tpl.display(), rdr.display(), vars);
+                let rdr = File::create(&rdr)?;
+                let name = tpl.display().to_string();
+                let mut reg = Handlebars::new();
+                reg.set_strict_mode(true);
+                reg.register_template_file(&name, tpl)?;
+                reg.render_to_write(&name, vars, &rdr)?;
+            }
+            return Ok(rdr);
+        }
     }
-    Ok(rdr)
+
+    let buf = template_str(&tpl.display().to_string(), vars)?;
+    Ok(Path::new(&buf).to_path_buf())
 }
 
 fn template_str(tpl: &str, vars: &Vars) -> Result<String> {
