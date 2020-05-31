@@ -197,6 +197,7 @@ impl Command {
         match self {
             Self::Upload { src, dest } => {
                 let src = template(inventory, src, vars)?.display().to_string();
+                let dest = template_str(dest, vars)?;
                 if host == Self::LOCALHOST {
                     shell(
                         host,
@@ -226,6 +227,8 @@ impl Command {
                 }
             }
             Self::Download { src, dest } => {
+                let src = template_str(src, vars)?;
+                let dest = template_str(dest, vars)?;
                 let dest = {
                     let it = Path::new("tmp").join("downloads").join(host).join(dest);
                     {
@@ -364,4 +367,12 @@ fn template<P: AsRef<Path>>(inventory: &str, tpl: P, vars: &Vars) -> Result<Path
         reg.render_to_write(&name, vars, &rdr)?;
     }
     Ok(rdr)
+}
+
+fn template_str(tpl: &str, vars: &Vars) -> Result<String> {
+    let mut reg = Handlebars::new();
+    let name = "";
+    reg.set_strict_mode(true);
+    reg.register_template_string(name, tpl)?;
+    Ok(reg.render(name, vars)?)
 }
