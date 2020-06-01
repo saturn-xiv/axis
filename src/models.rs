@@ -350,17 +350,20 @@ fn template_file<P: AsRef<Path>>(inventory: &str, tpl: P, vars: &Vars) -> Result
     let tpl = tpl.as_ref();
     {
         let tpl = Path::new(inventory).join(tpl);
+        debug!("try file {}", tpl.display());
         if tpl.exists() {
-            return Ok(tpl.to_path_buf());
+            return Ok(tpl);
         }
     }
     {
         let tpl = Path::new(JOBS).join(tpl);
+        debug!("try file {}", tpl.display());
         if tpl.exists() {
-            return Ok(tpl.to_path_buf());
+            return Ok(tpl);
         }
         {
             let tpl = tpl.with_extension(TEMPLATE_EXT);
+            debug!("try file {}", tpl.display());
             if tpl.exists() {
                 let root = Path::new("tmp").join("cache");
                 if !root.exists() {
@@ -386,7 +389,9 @@ fn template_file<P: AsRef<Path>>(inventory: &str, tpl: P, vars: &Vars) -> Result
     }
 
     let buf = template_str(&tpl.display().to_string(), vars)?;
-    Ok(Path::new(&buf).to_path_buf())
+    let tpl = Path::new(&buf).to_path_buf();
+    debug!("try file {}", tpl.display());
+    Ok(tpl)
 }
 
 fn template_str(tpl: &str, vars: &Vars) -> Result<String> {

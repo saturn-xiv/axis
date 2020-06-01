@@ -1,6 +1,6 @@
 [package]
 name = "axis"
-version = "0.1.0"
+version = "0.3.0"
 authors = ["Jeremy Zheng <jitang.zheng@gmail.com>"]
 edition = "2018"
 description = "A radically simple IT automation platform."
