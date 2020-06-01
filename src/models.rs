@@ -346,52 +346,58 @@ fn shell(host: &str, cmd: &mut ShellCommand) -> Result<()> {
     Ok(())
 }
 
-fn template_file<P: AsRef<Path>>(inventory: &str, tpl: P, vars: &Vars) -> Result<PathBuf> {
+fn _template_file<P: AsRef<Path>>(inventory: &str, tpl: P, vars: &Vars) -> Result<Option<PathBuf>> {
     let tpl = tpl.as_ref();
     {
         let tpl = Path::new(inventory).join(tpl);
         debug!("try file {}", tpl.display());
         if tpl.exists() {
-            return Ok(tpl);
+            return Ok(Some(tpl));
         }
     }
-    {
-        let tpl = Path::new(JOBS).join(tpl);
-        debug!("try file {}", tpl.display());
-        if tpl.exists() {
-            return Ok(tpl);
+    let tpl = Path::new(JOBS).join(tpl);
+    debug!("try file {}", tpl.display());
+    if tpl.exists() {
+        return Ok(Some(tpl));
+    }
+    let tpl = tpl.with_extension(TEMPLATE_EXT);
+    debug!("try file {}", tpl.display());
+    if tpl.exists() {
+        let root = Path::new("tmp").join("cache");
+        if !root.exists() {
+            create_dir_all(&root)?;
         }
+        let rdr = root.join(Uuid::new_v4().to_string());
         {
-            let tpl = tpl.with_extension(TEMPLATE_EXT);
-            debug!("try file {}", tpl.display());
-            if tpl.exists() {
-                let root = Path::new("tmp").join("cache");
-                if !root.exists() {
-                    create_dir_all(&root)?;
-                }
-                let rdr = root.join(Uuid::new_v4().to_string());
-                {
-                    debug!("render {} to {}: {:?}", tpl.display(), rdr.display(), vars);
-                    let rdr = OpenOptions::new()
-                        .mode(0o400)
-                        .create_new(true)
-                        .write(true)
-                        .open(&rdr)?;
-                    let name = tpl.display().to_string();
-                    let mut reg = Handlebars::new();
-                    reg.set_strict_mode(true);
-                    reg.register_template_file(&name, tpl)?;
-                    reg.render_to_write(&name, vars, &rdr)?;
-                }
-                return Ok(rdr);
-            }
+            debug!("render {} to {}: {:?}", tpl.display(), rdr.display(), vars);
+            let rdr = OpenOptions::new()
+                .mode(0o400)
+                .create_new(true)
+                .write(true)
+                .open(&rdr)?;
+            let name = tpl.display().to_string();
+            let mut reg = Handlebars::new();
+            reg.set_strict_mode(true);
+            reg.register_template_file(&name, tpl)?;
+            reg.render_to_write(&name, vars, &rdr)?;
         }
+        return Ok(Some(rdr));
     }
 
-    let buf = template_str(&tpl.display().to_string(), vars)?;
-    let tpl = Path::new(&buf).to_path_buf();
-    debug!("try file {}", tpl.display());
-    Ok(tpl)
+    Ok(None)
+}
+fn template_file<P: AsRef<Path>>(inventory: &str, tpl: P, vars: &Vars) -> Result<PathBuf> {
+    let tpl = tpl.as_ref();
+    if let Some(v) = _template_file(inventory, tpl, vars)? {
+        return Ok(v);
+    }
+    {
+        let tpl = template_str(&tpl.display().to_string(), vars)?;
+        if let Some(v) = _template_file(inventory, &tpl, vars)? {
+            return Ok(v);
+        }
+    }
+    Err(format_err!("can't find template file {}", tpl.display()))
 }
 
 fn template_str(tpl: &str, vars: &Vars) -> Result<String> {
