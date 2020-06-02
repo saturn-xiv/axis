@@ -277,7 +277,7 @@ impl Command {
                     .display()
                     .to_string();
                 if host == Self::LOCALHOST {
-                    shell(host, ShellCommand::new("bash").arg(script))?;
+                    shell(host, ShellCommand::new("bash").arg("-l").arg(script))?;
                 } else {
                     shell(
                         host,
@@ -289,7 +289,7 @@ impl Command {
                             .arg("-i")
                             .arg(key)
                             .arg(format!("{}@{}", user, host))
-                            .arg("bash -s")
+                            .arg("bash -l -s")
                             .stdin(Stdio::from(File::open(script)?)),
                     )?;
                 }
