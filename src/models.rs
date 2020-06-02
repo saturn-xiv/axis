@@ -115,6 +115,10 @@ impl Job {
                 "uuid".to_string(),
                 Value::String(Uuid::new_v4().to_string()),
             );
+            it.vars.insert(
+                "axis.version".to_string(),
+                Value::String(super::env::VERSION.to_string()),
+            );
             if let Ok(v) = Self::git_version() {
                 it.vars.insert("git.version".to_string(), Value::String(v));
             }
