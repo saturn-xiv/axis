@@ -198,7 +198,7 @@ impl Command {
         let key: String = Self::parse_ssh_key_file(inventory, vars);
 
         let ssh = format!(
-            "ssh -o StrictHostKeyChecking=no -p {port} -i {key}",
+            "ssh -T -o ConnectTimeout=3 -o ConnectionAttempts=5 -o StrictHostKeyChecking=no -o PasswordAuthentication=no -p {port} -i {key}",
             port = port,
             key = key
         );
@@ -283,18 +283,46 @@ impl Command {
                 if host == Self::LOCALHOST {
                     shell(host, ShellCommand::new("bash").arg(script))?;
                 } else {
+                    // let tmp = Path::new(&Component::RootDir)
+                    //     .join("tmp")
+                    //     .join(Uuid::new_v4().to_string())
+                    //     .display()
+                    //     .to_string();
+                    // shell(
+                    //     host,
+                    //     ShellCommand::new("rsync")
+                    //         .arg("-rlptD")
+                    //         .arg("-zz")
+                    //         .arg("-v")
+                    //         .arg("-e")
+                    //         .arg(ssh)
+                    //         .arg(script)
+                    //         .arg(format!(
+                    //             "{user}@{host}:{dest}",
+                    //             dest = tmp,
+                    //             user = user,
+                    //             host = host,
+                    //         )),
+                    // )?;
                     shell(
                         host,
                         ShellCommand::new("ssh")
+                            .arg("-T")
+                            .arg("-o")
+                            .arg("ConnectTimeout=3")
+                            .arg("-o")
+                            .arg("ConnectionAttempts=5")
                             .arg("-o")
                             .arg("StrictHostKeyChecking=no")
+                            .arg("-o")
+                            .arg("PasswordAuthentication=no")
                             .arg("-p")
                             .arg(port.to_string())
                             .arg("-i")
                             .arg(key)
                             .arg(format!("{}@{}", user, host))
-                            .arg("bash -s")
-                            .stdin(Stdio::from(File::open(script)?)),
+                            // .arg(format!("bash {}", tmp)),
+                            .stdin(File::open(script)?),
                     )?;
                 }
             }
@@ -379,11 +407,11 @@ fn _template_file<P: AsRef<Path>>(inventory: &str, tpl: P, vars: &Vars) -> Resul
                 .create_new(true)
                 .write(true)
                 .open(&rdr)?;
-            let name = tpl.display().to_string();
             let mut reg = Handlebars::new();
             reg.set_strict_mode(true);
-            reg.register_template_file(&name, tpl)?;
-            reg.render_to_write(&name, vars, &rdr)?;
+            let mut tpl = File::open(tpl)?;
+            reg.render_template_source_to_write(&mut tpl, vars, &rdr)?;
+            rdr.sync_all()?;
         }
         return Ok(Some(rdr));
     }
