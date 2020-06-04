@@ -12,7 +12,6 @@ fn main() {
                 .arg("describe")
                 .arg("--tags")
                 .arg("--always")
-                .arg("--first-parent")
                 .arg("--dirty")
                 .output()
                 .unwrap()
