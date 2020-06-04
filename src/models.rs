@@ -196,6 +196,10 @@ impl Command {
         let user = Self::parse_ssh_user(vars);
         let port = Self::parse_ssh_port(vars);
         let key: String = Self::parse_ssh_key_file(inventory, vars);
+        let sh = match vars.get("ssh.shell") {
+            Some(Value::String(v)) => v.clone(),
+            _ => "bash".to_string(),
+        };
 
         let ssh = format!(
             "ssh -T -o ConnectTimeout=3 -o ConnectionAttempts=5 -o StrictHostKeyChecking=no -o PasswordAuthentication=no -p {port} -i {key}",
@@ -281,29 +285,8 @@ impl Command {
                     .display()
                     .to_string();
                 if host == Self::LOCALHOST {
-                    shell(host, ShellCommand::new("bash").arg(script))?;
+                    shell(host, ShellCommand::new(&sh).arg(script))?;
                 } else {
-                    // let tmp = Path::new(&Component::RootDir)
-                    //     .join("tmp")
-                    //     .join(Uuid::new_v4().to_string())
-                    //     .display()
-                    //     .to_string();
-                    // shell(
-                    //     host,
-                    //     ShellCommand::new("rsync")
-                    //         .arg("-rlptD")
-                    //         .arg("-zz")
-                    //         .arg("-v")
-                    //         .arg("-e")
-                    //         .arg(ssh)
-                    //         .arg(script)
-                    //         .arg(format!(
-                    //             "{user}@{host}:{dest}",
-                    //             dest = tmp,
-                    //             user = user,
-                    //             host = host,
-                    //         )),
-                    // )?;
                     shell(
                         host,
                         ShellCommand::new("ssh")
@@ -321,7 +304,7 @@ impl Command {
                             .arg("-i")
                             .arg(key)
                             .arg(format!("{}@{}", user, host))
-                            // .arg(format!("bash {}", tmp)),
+                            .arg(format!("{} -s", sh))
                             .stdin(File::open(script)?),
                     )?;
                 }
@@ -336,7 +319,7 @@ impl fmt::Display for Command {
         match self {
             Self::Upload { src, dest } => write!(f, "upload {} to {}", src, dest),
             Self::Download { src, dest } => write!(f, "download {} to {}", src, dest),
-            Self::Shell { script } => write!(f, "run shell script {}", script),
+            Self::Shell { script } => write!(f, "shell script {}", script),
         }
     }
 }
