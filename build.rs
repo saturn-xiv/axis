@@ -18,8 +18,17 @@ fn main() {
                 .stdout,
         )
         .unwrap();
-        let build_time =
-            String::from_utf8(Command::new("date").arg("-u").output().unwrap().stdout).unwrap();
+
+        let build_time = String::from_utf8(
+            if cfg!(windows) {
+                Command::new("Get-Date").output()
+            } else {
+                Command::new("date").arg("-u").output()
+            }
+            .unwrap()
+            .stdout,
+        )
+        .unwrap();
 
         let dest_path = Path::new(&out_dir).join("env.rs");
         let mut fd = File::create(&dest_path).unwrap();
