@@ -2,7 +2,6 @@ use std::collections::BTreeMap;
 use std::fmt;
 use std::fs::{create_dir_all, File, OpenOptions};
 use std::io::{prelude::*, BufReader, BufWriter};
-use std::os::unix::fs::OpenOptionsExt;
 use std::path::{Path, PathBuf};
 use std::process::{Command as ShellCommand, Stdio};
 
@@ -385,11 +384,16 @@ fn _template_file<P: AsRef<Path>>(inventory: &str, tpl: P, vars: &Vars) -> Resul
         let rdr = root.join(Uuid::new_v4().to_string());
         {
             debug!("render {} to {}: {:?}", tpl.display(), rdr.display(), vars);
-            let rdr = OpenOptions::new()
-                .mode(0o400)
-                .create_new(true)
-                .write(true)
-                .open(&rdr)?;
+            let rdr = if cfg!(target_os = "linux") {
+                use std::os::unix::fs::OpenOptionsExt;
+                OpenOptions::new()
+                    .mode(0o400)
+                    .create_new(true)
+                    .write(true)
+                    .open(&rdr)?
+            } else {
+                OpenOptions::new().create_new(true).write(true).open(&rdr)?
+            };
             let mut reg = Handlebars::new();
             reg.set_strict_mode(true);
             let mut tpl = File::open(tpl)?;
