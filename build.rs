@@ -18,12 +18,11 @@ fn main() {
                 .stdout,
         )
         .unwrap();
-
         let build_time = String::from_utf8(
             if cfg!(windows) {
-                Command::new("Get-Date").output()
+                Command::new("cmd").args(&["/C", "Get-Date"]).output()
             } else {
-                Command::new("date").arg("-u").output()
+                Command::new("sh").arg("-c").arg("date -u").output()
             }
             .unwrap()
             .stdout,
