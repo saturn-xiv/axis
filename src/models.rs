@@ -384,15 +384,15 @@ fn _template_file<P: AsRef<Path>>(inventory: &str, tpl: P, vars: &Vars) -> Resul
         let rdr = root.join(Uuid::new_v4().to_string());
         {
             debug!("render {} to {}: {:?}", tpl.display(), rdr.display(), vars);
-            let rdr = if cfg!(target_os = "linux") {
+            let rdr = if cfg!(windows) {
+                OpenOptions::new().create_new(true).write(true).open(&rdr)?
+            } else {
                 use std::os::unix::fs::OpenOptionsExt;
                 OpenOptions::new()
                     .mode(0o400)
                     .create_new(true)
                     .write(true)
                     .open(&rdr)?
-            } else {
-                OpenOptions::new().create_new(true).write(true).open(&rdr)?
             };
             let mut reg = Handlebars::new();
             reg.set_strict_mode(true);
