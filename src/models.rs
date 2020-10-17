@@ -12,7 +12,7 @@ use serde::de::DeserializeOwned;
 use toml::Value;
 use uuid::Uuid;
 
-use super::errors::Result;
+use super::errors::{Error, Result};
 
 pub const CONFIG_EXT: &str = "toml";
 pub const TEMPLATE_EXT: &str = "hbs";
@@ -89,7 +89,7 @@ impl Job {
             .stdout(Stdio::piped())
             .spawn()?
             .stdout
-            .ok_or_else(|| format_err!("could not capture standard output"))?;
+            .ok_or_else(|| Error::Custom("could not capture standard output".to_string()))?;
         let mut buf = String::new();
         let mut rdr = BufReader::new(out);
         rdr.read_to_string(&mut buf)?;
@@ -355,7 +355,7 @@ fn shell(host: &str, cmd: &mut ShellCommand) -> Result<()> {
         .spawn()?
         .wait_with_output()?;
     if !out.status.success() {
-        return Err(format_err!("{:?}", cmd));
+        return Err(Error::Custom(format!("{:?}", cmd)));
     }
     Ok(())
 }
@@ -417,7 +417,10 @@ fn template_file<P: AsRef<Path>>(inventory: &str, tpl: P, vars: &Vars) -> Result
             return Ok(v);
         }
     }
-    Err(format_err!("can't find template file {}", tpl.display()))
+    Err(Error::Custom(format!(
+        "can't find template file {}",
+        tpl.display()
+    )))
 }
 
 fn template_str(tpl: &str, vars: &Vars) -> Result<String> {

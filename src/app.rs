@@ -3,9 +3,12 @@ use std::sync::{Arc, Mutex};
 use std::thread;
 
 use clap::{App, Arg};
-use failure::Error;
 
-use super::{env, errors::Result, models::Job};
+use super::{
+    env,
+    errors::{Error, Result},
+    models::Job,
+};
 
 pub fn run() -> Result<()> {
     let matches = App::new(env::NAME)
@@ -34,11 +37,11 @@ pub fn run() -> Result<()> {
 
     let job = matches
         .value_of("job")
-        .ok_or_else(|| format_err!("please give a job name"))?;
+        .ok_or_else(|| Error::Custom("please give a job name".to_string()))?;
 
     let inventory = matches
         .value_of("inventory")
-        .ok_or_else(|| format_err!("please give a inventory name"))?;
+        .ok_or_else(|| Error::Custom("please give a inventory name".to_string()))?;
     let reason = Arc::new(Mutex::new(None::<Error>));
 
     let excutors = Job::load(job, inventory)?;
@@ -47,7 +50,7 @@ pub fn run() -> Result<()> {
             let reason = reason.lock();
             if let Ok(ref reason) = reason {
                 if let Some(ref e) = reason.deref() {
-                    return Err(format_err!("{}", e));
+                    return Err(Error::Custom(e.to_string()));
                 }
             }
         }

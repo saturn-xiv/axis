@@ -1,6 +1,6 @@
 [package]
 name = "axis"
-version = "0.3.0"
+version = "0.3.1"
 authors = ["Jeremy Zheng <jitang.zheng@gmail.com>"]
 edition = "2018"
 description = "A radically simple IT automation platform."
@@ -12,10 +12,9 @@ readme = "README.md"
 lto = true
 
 [dependencies]
-failure = "0.1"
 log = "0.4"
 toml = "0.5"
-env_logger = "0.7"
+env_logger = "0.8"
 rand = "0.7"
 serde = "1"
 serde_derive = "1"
