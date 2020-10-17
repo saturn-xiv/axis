@@ -20,5 +20,5 @@ RUN echo 'source $HOME/.profile' >> $HOME/.zshrc
 VOLUME /workspace
 WORKDIR /workspace
 
-ENV RUSTFLAGS="-C target-feature=+crt-static"
+ENV RUSTFLAGS="-C target-feature=-crt-static"
 CMD ["/bin/zsh", "-l"]
